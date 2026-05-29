@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import {
   GAME, TIMER, MONEY, ROBBER, BAGS, CAR, PARTNER,
-  BANK, PARTNER_LINES, ROBBER_LINES,
+  BANK, PARTNER_LINES, ROBBER_LINES, ROBBER_QUIPS,
 } from '../config/gameConfig.js';
 
 // ============================================================
@@ -57,7 +57,6 @@ export default class GameScene extends Phaser.Scene {
     this.updateRobberMovement(delta);
     if (this.timerStarted) {
       this.updateTimer(time);
-      this.updatePartnerPacing(time);
     }
   }
 
@@ -194,7 +193,7 @@ export default class GameScene extends Phaser.Scene {
     const placed = [];
     let attempts = 0;
 
-    while (placed.length < count && attempts < 600) {
+    while (placed.length < count && attempts < 1500) {
       const x = Phaser.Math.Between(BAGS.AREA.minX, BAGS.AREA.maxX);
       const y = Phaser.Math.Between(BAGS.AREA.minY, BAGS.AREA.maxY);
       let ok = true;
@@ -236,11 +235,11 @@ export default class GameScene extends Phaser.Scene {
       .setDepth(10)
       .setScale(1.2);
 
-    // 走路时的上下摇晃
+    // 走路时的左右摇摆（用角度，不影响坐标）
     this.robberBobTween = this.tweens.add({
       targets: this.robber,
-      y: '-=3',
-      duration: 180,
+      angle: { from: -4, to: 4 },
+      duration: 150,
       yoyo: true,
       repeat: -1,
       paused: true,
@@ -248,30 +247,20 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createHUD() {
-    // 半透明HUD背景
+    // 半透明HUD背景（只显示金额）
     this.hudBg = this.add.graphics().setDepth(90);
     this.hudBg.fillStyle(0x000000, 0.5);
-    this.hudBg.fillRoundedRect(8, 6, 160, 36, 8);
-    this.hudBg.fillRoundedRect(GAME.WIDTH - 168, 6, 160, 36, 8);
+    this.hudBg.fillRoundedRect(GAME.WIDTH / 2 - 100, 6, 200, 36, 8);
     this.hudBg.setAlpha(0);
 
-    // 倒计时
-    this.timerText = this.add.text(18, 12, '⏱ 1:00', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '16px',
-      color: '#ffffff',
-      stroke: '#000',
-      strokeThickness: 4,
-    }).setDepth(100).setAlpha(0);
-
-    // 金额
-    this.moneyText = this.add.text(GAME.WIDTH - 18, 12, '💰 $0', {
+    // 金额（居中显示）
+    this.moneyText = this.add.text(GAME.WIDTH / 2, 12, '💰 $0', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '16px',
       color: '#ffd700',
       stroke: '#000',
       strokeThickness: 4,
-    }).setOrigin(1, 0).setDepth(100).setAlpha(0);
+    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0);
 
     // 翻倍弹出数字（复用）
     this.popupText = this.add.text(0, 0, '', {
@@ -516,6 +505,7 @@ export default class GameScene extends Phaser.Scene {
       // 到达目标
       this.robber.x = target.x;
       this.robber.y = target.y;
+      this.robber.angle = 0;
       this.robberBobTween.pause();
 
       if (target === this.car) {
@@ -576,10 +566,13 @@ export default class GameScene extends Phaser.Scene {
     // 震动
     this.vibrateDevice(30);
 
+    // 按捡袋数触发劫匪搞笑台词
+    this.checkRobberQuip();
+
     // 检查是否所有钱袋都捡完了
     const remaining = this.moneyBags.filter(b => !b.collected).length;
     if (remaining === 0) {
-      this.showBubble(this.partner, '钱都捡完了！快上车！', 2000);
+      this.showBubble(this.robber, '全捡完了！！快上车！', 2000);
     }
   }
 
@@ -605,12 +598,11 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // 猪队友尖叫
-    this.showBubble(this.partner, PARTNER_LINES[0].text, PARTNER_LINES[0].ms);
-    this.triggeredDialogues.add('alarm');
+    this.showBubble(this.partner, PARTNER_LINES.alarm, 2500);
 
-    // 1.5秒后劫匪说"警察还有一分钟"
+    // 1.5秒后劫匪说核心玩法台词
     this.time.delayedCall(1800, () => {
-      this.showBubble(this.robber, ROBBER_LINES.gogogo, 2500);
+      this.showBubble(this.robber, ROBBER_LINES.gogogo, 3500);
     });
 
     // 2.5秒后显示 HUD & 开始计时
@@ -618,9 +610,8 @@ export default class GameScene extends Phaser.Scene {
       this.timerStarted = true;
       this.timerStartTime = this.time.now;
 
-      // HUD 淡入
+      // HUD 淡入（只有金额，没有倒计时）
       this.tweens.add({ targets: this.hudBg, alpha: 1, duration: 300 });
-      this.tweens.add({ targets: this.timerText, alpha: 1, duration: 300 });
       this.tweens.add({ targets: this.moneyText, alpha: 1, duration: 300 });
 
       // 逃跑按钮出现
@@ -645,29 +636,9 @@ export default class GameScene extends Phaser.Scene {
     const elapsed = (time - this.timerStartTime) / 1000;
     const displayTime = TIMER.DISPLAY_SECONDS - elapsed;
 
-    // 格式化
-    const abs = Math.abs(displayTime);
-    const min = Math.floor(abs / 60);
-    const sec = Math.floor(abs % 60);
-    const sign = displayTime < 0 ? '-' : '';
-    this.timerText.setText(`⏱ ${sign}${min}:${sec.toString().padStart(2, '0')}`);
+    // 不显示倒计时，不泄露时间信息
 
-    // 颜色 & 闪烁
-    if (displayTime <= 0) {
-      this.timerText.setColor('#ff2222');
-      this.timerText.setAlpha(Math.floor(elapsed * 4) % 2 === 0 ? 1 : 0.35);
-    } else if (displayTime <= 10) {
-      this.timerText.setColor('#ff5500');
-    } else if (displayTime <= 30) {
-      this.timerText.setColor('#ffaa33');
-    } else {
-      this.timerText.setColor('#ffffff');
-    }
-
-    // 猪队友对话触发
-    this.checkDialogueTrigger(displayTime);
-
-    // 心跳音效（最后15秒）
+    // 心跳音效（最后15秒）— 给玩家隐性压力
     if (displayTime <= 15 && !this.heartbeatInterval && this.audioCtx) {
       this.startHeartbeat();
     }
@@ -688,31 +659,14 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  checkDialogueTrigger(displayTime) {
-    for (const line of PARTNER_LINES) {
-      if (line.at === 'alarm') continue; // 已在 triggerAlarm 处理
-      const key = `time_${line.at}`;
-      if (!this.triggeredDialogues.has(key) && displayTime <= line.at) {
-        this.triggeredDialogues.add(key);
-        this.showBubble(this.partner, line.text, line.ms);
-
-        // 越紧急，猪队友踱步越快
-        if (line.at <= 15 && this.partnerPaceTween) {
-          this.partnerPaceTween.timeScale = 2;
-        }
-        if (line.at <= 5 && this.partnerPaceTween) {
-          this.partnerPaceTween.timeScale = 3.5;
-        }
-        break; // 一次只触发一条
+  // 按捡袋数触发劫匪台词（不泄露时间）
+  checkRobberQuip() {
+    for (const quip of ROBBER_QUIPS) {
+      if (this.bagsCollected === quip.bags) {
+        this.showBubble(this.robber, quip.text, 2000);
+        break;
       }
     }
-  }
-
-  // ==================================================================
-  //  猪队友动画
-  // ==================================================================
-  updatePartnerPacing(_time) {
-    // 由 tween 驱动，无需额外逻辑
   }
 
   // ==================================================================
@@ -783,34 +737,67 @@ export default class GameScene extends Phaser.Scene {
     this.gameEnded = true;
     this.cleanupSounds();
     this.robberBobTween.pause();
+    this.robber.angle = 0;
 
-    // 屏幕闪红
-    this.cameras.main.flash(500, 255, 50, 50);
-    this.cameras.main.shake(400, 0.02);
+    // 屏幕剧烈震动
+    this.cameras.main.shake(600, 0.025);
 
-    // 警车出现效果 — 红蓝闪烁
-    const policeFlash = this.add.graphics().setDepth(200);
+    // ── 警车从两侧冲入 ──
+    const car1 = this.add.image(-80, 720, 'policeCar').setDepth(50).setAngle(0);
+    const car2 = this.add.image(GAME.WIDTH + 80, 760, 'policeCar').setDepth(50).setAngle(0);
+
+    // 左边警车冲入
+    this.tweens.add({
+      targets: car1,
+      x: 100,
+      y: 700,
+      duration: 500,
+      ease: 'Quad.easeOut',
+    });
+
+    // 右边警车冲入
+    this.tweens.add({
+      targets: car2,
+      x: GAME.WIDTH - 100,
+      y: 700,
+      duration: 600,
+      ease: 'Quad.easeOut',
+    });
+
+    // 警车红蓝闪灯
     let flashCount = 0;
-    const flashInterval = this.time.addEvent({
-      delay: 150,
-      repeat: 8,
+    const policeFlash = this.add.graphics().setDepth(200);
+    this.time.addEvent({
+      delay: 120,
+      repeat: 15,
       callback: () => {
         policeFlash.clear();
         const color = flashCount % 2 === 0 ? 0xff0000 : 0x0044ff;
-        policeFlash.fillStyle(color, 0.15);
+        policeFlash.fillStyle(color, 0.12);
         policeFlash.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
         flashCount++;
+
+        // 警车自身闪灯（缩放脉冲）
+        if (car1.active) car1.setScale(flashCount % 2 === 0 ? 1.05 : 1);
+        if (car2.active) car2.setScale(flashCount % 2 === 0 ? 1 : 1.05);
       },
     });
 
-    // 劫匪举手投降姿态
-    this.tweens.add({
-      targets: this.robber,
-      scaleY: 0.8,
-      duration: 500,
+    // 劫匪举手投降
+    this.time.delayedCall(400, () => {
+      // 手举起来的视觉：略微放大 + 变白（被灯照到）
+      this.tweens.add({
+        targets: this.robber,
+        scaleX: 1.4,
+        scaleY: 0.9,
+        duration: 300,
+      });
     });
 
-    this.time.delayedCall(1500, () => {
+    // 警笛音效
+    this.playSirenSound();
+
+    this.time.delayedCall(2000, () => {
       this.cameras.main.fadeOut(600, 0, 0, 0);
       this.time.delayedCall(700, () => {
         const moneyIfOneLess = this.bagsCollected > 1
@@ -828,14 +815,15 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.playFailSound();
-    this.vibrateDevice(200);
+    this.vibrateDevice(300);
   }
 
   // ==================================================================
   //  UI 更新
   // ==================================================================
   updateMoneyDisplay() {
-    this.moneyText.setText(`💰 $${this.totalMoney.toLocaleString()}`);
+    const formatted = this.formatMoney(this.totalMoney);
+    this.moneyText.setText(`💰 ${formatted}`);
 
     // 弹跳动画
     this.tweens.add({
@@ -844,6 +832,13 @@ export default class GameScene extends Phaser.Scene {
       duration: 300,
       ease: 'Bounce.easeOut',
     });
+  }
+
+  formatMoney(n) {
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}万亿`;
+    if (n >= 1e8)  return `$${(n / 1e8).toFixed(1)}亿`;
+    if (n >= 1e4)  return `$${(n / 1e4).toFixed(1)}万`;
+    return `$${n.toLocaleString()}`;
   }
 
   showMoneyPopup(x, y) {
@@ -1037,6 +1032,27 @@ export default class GameScene extends Phaser.Scene {
     [400, 350, 300, 200].forEach((f, i) => {
       setTimeout(() => this.playTone(f, 0.3, 'sawtooth', 0.1), i * 180);
     });
+  }
+
+  playSirenSound() {
+    if (!this.audioCtx) return;
+    try {
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(600, this.audioCtx.currentTime);
+      // 上下交替的警笛音
+      for (let t = 0; t < 2; t += 0.4) {
+        osc.frequency.linearRampToValueAtTime(900, this.audioCtx.currentTime + t + 0.2);
+        osc.frequency.linearRampToValueAtTime(600, this.audioCtx.currentTime + t + 0.4);
+      }
+      gain.gain.setValueAtTime(0.08, this.audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 2);
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start();
+      osc.stop(this.audioCtx.currentTime + 2);
+    } catch (e) { /* 降级 */ }
   }
 
   cleanupSounds() {

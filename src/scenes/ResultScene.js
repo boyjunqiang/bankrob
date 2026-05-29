@@ -79,28 +79,38 @@ export default class ResultScene extends Phaser.Scene {
     });
 
     // ── 警察到达揭晓 ──
-    const revealDelay = 1200 + data.bags * 350 + 800;
-    this.time.delayedCall(revealDelay, () => {
-      this.revealPoliceMargin(cx, data);
-    });
-
-    // ── 统计 & 按钮 ──
-    const btnDelay = revealDelay + 1800;
-    this.time.delayedCall(btnDelay, () => {
-      this.showStats(cx, data);
-      this.showRetryButton(cx, 720);
-      this.updateHighScore(data.money);
+    // 延迟基于实际动画时长，在 animateMoneyCount 完成后触发
+    this.time.delayedCall(800, () => {
+      // 等待计数动画完成后再显示
+      const checkReady = () => {
+        if (this._countDuration !== undefined) {
+          const revealDelay = this._countDuration + 800;
+          this.time.delayedCall(revealDelay, () => {
+            this.revealPoliceMargin(cx, data);
+          });
+          this.time.delayedCall(revealDelay + 1800, () => {
+            this.showStats(cx, data);
+            this.showRetryButton(cx, 720);
+            this.updateHighScore(data.money);
+          });
+        } else {
+          this.time.delayedCall(100, checkReady);
+        }
+      };
+      checkReady();
     });
   }
 
   animateMoneyCount(cx, data) {
     const moneyText = this.add.text(cx, 300, '$0', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '36px',
+      fontSize: '32px',
       color: '#ffd700',
       stroke: '#000',
       strokeThickness: 8,
     }).setOrigin(0.5).setDepth(10);
+
+    const maxW = GAME.WIDTH - 40;
 
     // 副标题
     const subText = this.add.text(cx, 350, '', {
@@ -113,12 +123,17 @@ export default class ResultScene extends Phaser.Scene {
 
     let amount = 0;
     for (let i = 0; i < data.bags; i++) {
-      amount = i === 0 ? 100 : amount * 2;
+      amount = i === 0 ? 1 : amount * 2;
       const displayAmount = amount;
       const isLast = i === data.bags - 1;
+      const delay = Math.max(40, 150 - i * 3); // 越后面越快
 
-      this.time.delayedCall(i * 350, () => {
+      this.time.delayedCall(i * delay, () => {
         moneyText.setText(`$${displayAmount.toLocaleString()}`);
+        // 自动缩放以适应屏幕宽度
+        moneyText.setScale(1);
+        const targetScale = moneyText.width > maxW ? maxW / moneyText.width : 1;
+        moneyText.setScale(targetScale);
 
         if (i > 0) {
           subText.setText(`第${i + 1}袋 · x2 翻倍！`);
@@ -126,46 +141,48 @@ export default class ResultScene extends Phaser.Scene {
           this.tweens.add({
             targets: subText,
             alpha: { from: 1, to: 0.5 },
-            duration: 300,
+            duration: 200,
           });
         } else {
           subText.setText('第1袋');
         }
 
-        // 弹跳放大效果
+        // 弹跳放大效果（基于目标缩放）
         this.tweens.add({
           targets: moneyText,
-          scale: { from: 1.4, to: 1 },
-          duration: 250,
+          scale: { from: targetScale * 1.3, to: targetScale },
+          duration: 200,
           ease: 'Bounce.easeOut',
         });
 
         // 金币粒子
-        this.spawnCollectParticles(cx, 300, isLast ? 20 : 6);
+        this.spawnCollectParticles(cx, 300, isLast ? 20 : 4);
 
         // 升调音效
-        const freq = 400 + i * 80;
-        this.playTone(freq, 0.15, 'square', 0.1);
-        setTimeout(() => this.playTone(freq * 1.25, 0.1, 'square', 0.08), 80);
+        const freq = 400 + i * 40;
+        this.playTone(freq, 0.1, 'square', 0.08);
 
         // 最终金额定格 → 大爆炸
         if (isLast) {
-          this.time.delayedCall(400, () => {
-            this.triggerMoneyExplosion(cx, moneyText);
+          this.time.delayedCall(300, () => {
+            this.triggerMoneyExplosion(cx, moneyText, targetScale);
           });
         }
       });
     }
+
+    // 更新后续事件的延迟（基于实际动画总时长）
+    this._countDuration = data.bags * Math.max(40, 150 - data.bags * 3);
   }
 
-  triggerMoneyExplosion(cx, moneyText) {
+  triggerMoneyExplosion(cx, moneyText, targetScale = 1) {
     // 屏幕闪金
     this.cameras.main.flash(300, 255, 215, 0);
 
     // 最终金额放大稳定
     this.tweens.add({
       targets: moneyText,
-      scale: { from: 1.6, to: 1.1 },
+      scale: { from: targetScale * 1.5, to: targetScale * 1.1 },
       duration: 500,
       ease: 'Elastic.easeOut',
     });
@@ -358,6 +375,7 @@ export default class ResultScene extends Phaser.Scene {
         });
 
         this.time.delayedCall(800, () => {
+          const maxW = GAME.WIDTH - 40;
           const amountText = this.add.text(cx, 470,
             `$${data.moneyIfOneLess.toLocaleString()}`, {
               fontFamily: '"Press Start 2P", monospace',
@@ -368,9 +386,12 @@ export default class ResultScene extends Phaser.Scene {
             }
           ).setOrigin(0.5).setDepth(10).setScale(0);
 
+          // 自动缩放适配屏幕
+          const fitScale = amountText.width > maxW ? maxW / amountText.width : 1;
+
           this.tweens.add({
             targets: amountText,
-            scale: 1,
+            scale: fitScale,
             duration: 400,
             ease: 'Back.easeOut',
           });

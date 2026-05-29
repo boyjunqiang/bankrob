@@ -24,6 +24,7 @@ export default class BootScene extends Phaser.Scene {
     this.genTeller();
     this.genGoldCoin();
     this.genDollarBill();
+    this.genPoliceCar();
     this.genGunFlash();
   }
 
@@ -263,6 +264,63 @@ export default class BootScene extends Phaser.Scene {
     g.fillStyle(0x77cc77, 0.5);
     g.fillRect(2, 2, 10, 3);
     g.generateTexture('dollarBill', 14, 7);
+    g.destroy();
+  }
+
+  // ── 警车（俯视） ──────────────────────────────
+  genPoliceCar() {
+    const W = 56, H = 92;
+    const g = this.make.graphics({ add: false });
+
+    // 车体阴影
+    g.fillStyle(0x000000, 0.3);
+    g.fillRoundedRect(6, 8, W - 12, H - 8, 12);
+
+    // 车体（白色）
+    g.fillStyle(0xe8e8ee);
+    g.fillRoundedRect(4, 4, W - 8, H - 8, 12);
+
+    // 车顶
+    g.fillStyle(0xd0d0dd);
+    g.fillRoundedRect(10, 28, W - 20, 34, 6);
+
+    // 前挡风
+    g.fillStyle(0x64b5f6, 0.5);
+    g.fillRoundedRect(12, 18, W - 24, 14, 4);
+
+    // 后挡风
+    g.fillStyle(0x64b5f6, 0.4);
+    g.fillRoundedRect(12, 58, W - 24, 10, 4);
+
+    // 警灯条（红蓝）
+    g.fillStyle(0xff2222);
+    g.fillRoundedRect(10, 38, 14, 6, 2);
+    g.fillStyle(0x2244ff);
+    g.fillRoundedRect(W - 24, 38, 14, 6, 2);
+
+    // 警灯发光
+    g.fillStyle(0xff2222, 0.3);
+    g.fillCircle(17, 41, 10);
+    g.fillStyle(0x2244ff, 0.3);
+    g.fillCircle(W - 17, 41, 10);
+
+    // 前车灯
+    g.fillStyle(0xffee88);
+    g.fillCircle(12, 8, 4);
+    g.fillCircle(W - 12, 8, 4);
+
+    // 蓝色车身条纹
+    g.fillStyle(0x2255aa, 0.7);
+    g.fillRect(4, 70, W - 8, 6);
+
+    // 车轮
+    g.fillStyle(0x111111);
+    g.fillRoundedRect(0, 14, 6, 14, 2);
+    g.fillRoundedRect(W - 6, 14, 6, 14, 2);
+    g.fillRoundedRect(0, 60, 6, 14, 2);
+    g.fillRoundedRect(W - 6, 60, 6, 14, 2);
+
+    g.generateTexture('policeCar', W, H);
     g.destroy();
   }
 

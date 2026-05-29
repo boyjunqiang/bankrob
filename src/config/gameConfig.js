@@ -14,21 +14,21 @@ export const TIMER = {
 };
 
 export const MONEY = {
-  INITIAL: 100,              // 第一个钱袋的金额
+  INITIAL: 1,               // 第一个钱袋的金额
 };
 
 export const ROBBER = {
-  SPEED: 160,                // 正常移动速度 (px/s)
-  ESCAPE_SPEED: 210,         // 逃跑冲刺速度 (px/s)
+  SPEED: 110,                // 正常移动速度 (px/s) — 慢一点，每袋都有成本
+  ESCAPE_SPEED: 165,         // 逃跑冲刺速度 (px/s)
   START_X: 195,
   START_Y: 520,
   COLLECT_RADIUS: 18,        // 捡拾判定半径
 };
 
 export const BAGS = {
-  MIN_COUNT: 10,
-  MAX_COUNT: 12,
-  MIN_DISTANCE: 55,          // 钱袋间最小距离
+  MIN_COUNT: 50,
+  MAX_COUNT: 60,
+  MIN_DISTANCE: 32,          // 钱袋间最小距离（铺满整个地面）
   AREA: {
     minX: 50, maxX: 340,
     minY: 165, maxY: 625,
@@ -55,23 +55,33 @@ export const BANK = {
   OUTSIDE_Y: 700,
 };
 
-// 猪队友对话 (trigger = 剩余时间)
-export const PARTNER_LINES = [
-  { at: 'alarm',  text: '🚨 有人报警了！！快跑！',     ms: 2500 },
-  { at: 45,       text: '老大，快点啊！',               ms: 2000 },
-  { at: 30,       text: '我有不好的预感…',              ms: 2000 },
-  { at: 15,       text: '我看到警灯了！快走！！',       ms: 2500 },
-  { at: 10,       text: '求你了赶紧上车！！',           ms: 2000 },
-  { at: 5,        text: '完了完了完了！！！',            ms: 2000 },
-  { at: 0,        text: '老大你疯了吗！！！',            ms: 3000 },
-  { at: -5,       text: '啊啊啊啊啊啊！！！',           ms: 2000 },
-];
+// 猪队友对话（仅在报警时说一句，不再按时间触发）
+export const PARTNER_LINES = {
+  alarm: '🚨 完了！报警了！！',
+};
 
+// 劫匪台词
 export const ROBBER_LINES = {
   threat:  '不许动！\n把钱都拿出来！',
   noAlarm: '谁都不准报警！\n否则毙了你们！',
-  gogogo:  '警察还有一分钟！\n尽量多捡点！',
+  gogogo:  '慌什么！警察最快一分钟才到！\n这辈子就赌这一把了！\n给老子使劲捡！！',
 };
+
+// 劫匪按捡钱袋数说的搞笑台词（不泄露时间信息）
+export const ROBBER_QUIPS = [
+  { bags: 3,  text: '嘿嘿嘿 真香！' },
+  { bags: 6,  text: '再捡一个！\n就一个！' },
+  { bags: 10, text: '哈哈哈 停不下来！' },
+  { bags: 14, text: '贪心？\n我这叫专业！' },
+  { bags: 18, text: '我是不是有点上头了…' },
+  { bags: 22, text: '再来再来！\n就最后一个！' },
+  { bags: 26, text: '好像听到什么声音…\n算了不管了！' },
+  { bags: 30, text: '谁能阻止我！！' },
+  { bags: 35, text: '我是不是疯了？\n但好爽啊！' },
+  { bags: 40, text: '老婆对不起…\n但这钱太多了！' },
+  { bags: 45, text: '传说中的赌神！' },
+  { bags: 50, text: '我已经无法停下来了…' },
+];
 
 // 结算称号
 export const TITLES = [

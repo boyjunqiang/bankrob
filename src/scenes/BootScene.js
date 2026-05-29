@@ -8,19 +8,134 @@ export default class BootScene extends Phaser.Scene {
     super('BootScene');
   }
 
+  preload() {
+    this.load.video('homeVideo', 'assets/首页视频.mp4');
+    this.load.audio('homeAudio', 'assets/启动页.mp3');
+    this.load.image('homeBtn', 'assets/首页开始按钮.png');
+    this.load.image('homeTitle', 'assets/首页标题.png');
+
+    // 加载外部新资源
+    this.load.image('gameBg', 'assets/游戏主画面.png');
+    this.load.image('moneybag', 'assets/钱袋.png');
+    this.load.image('car', 'assets/汽车.png');
+    this.load.image('gameBg2', 'assets/游戏主画面2.png');
+    this.load.image('gameBg3', 'assets/游戏主画面3.png');
+    this.load.image('gameBg4', 'assets/游戏主画面4.png');
+    this.load.image('gameBg5', 'assets/游戏主画面5.png');
+    this.load.audio('robberyMusic', 'assets/开始抢银行.mp3');
+    this.load.image('partner', 'assets/劫匪2.png');
+    this.load.audio('collectSound', 'assets/collect.mp3');
+    this.load.audio('failSound', 'assets/失败.mp3');
+    this.load.audio('successSound', 'assets/胜利.mp3');
+
+    // 成功结算页优化新资源
+    this.load.image('victoryBg', 'assets/胜利背景.png');
+    this.load.image('successHeader', 'assets/成功逃脱.png');
+    this.load.image('successHighScoreHeader', 'assets/成功逃脱新高分.png');
+    this.load.image('popupMoney', 'assets/弹出框钱.png');
+    this.load.image('popupPoliceCar', 'assets/弹出框警车.png');
+    this.load.image('popupHumanDisdain', 'assets/弹出框小人鄙视.png');
+    this.load.image('popupHumanHappy', 'assets/弹出框小人鄙视开心.png');
+    this.load.image('btnShare', 'assets/分享战绩.png');
+    this.load.image('btnRetry', 'assets/再来一次.png');
+    this.load.image('btnEscape', 'assets/逃跑.png');
+    this.load.image('fallingBill', 'assets/飘落钞票.png');
+
+    // 失败结算页资源
+    this.load.image('failBg', 'assets/失败背景.png');
+    this.load.image('failHeader', 'assets/失败标题.png');
+
+    // 预加载劫匪台词语音
+    this.load.audio('voiceLine1', 'assets/台词1.mp3');
+    this.load.audio('voiceLine2', 'assets/台词2.mp3');
+    this.load.audio('voiceLine3', 'assets/台词3.mp3');
+
+    // 预加载主角静止三视图（正面、背面、左侧面）
+    this.load.image('robber_idle_front', 'assets/robber_idle_front.png');
+    this.load.image('robber_idle_back', 'assets/robber_idle_back.png');
+    this.load.image('robber_idle_left', 'assets/robber_idle_left.png');
+
+    // 预加载主角多方向行走动作帧
+    for (let i = 0; i < 8; i++) {
+      this.load.image(`robber_down_${i}`, `assets/robber_down_${i}.png`);
+    }
+    for (let i = 0; i < 11; i++) {
+      this.load.image(`robber_up_${i}`, `assets/robber_up_${i}.png`);
+      this.load.image(`robber_left_${i}`, `assets/robber_left_${i}.png`);
+    }
+
+    // 预加载警车动画帧
+    for (let i = 0; i < 7; i++) {
+      this.load.image(`police_car_${i}`, `assets/police_car_${i}.png`);
+    }
+  }
+
   create() {
-    // 等待字体加载，然后生成纹理
+    // 等待字体加载，然后生成纹理并创建动画
     document.fonts.ready.then(() => {
       this.generateAllTextures();
+      this.createAnimations();
       this.scene.start('MenuScene');
+    });
+  }
+
+  createAnimations() {
+    // 1. 向下行走 (正面)
+    const downFrames = [];
+    for (let i = 0; i < 8; i++) {
+      downFrames.push({ key: `robber_down_${i}` });
+    }
+    this.anims.create({
+      key: 'robber_walk_down',
+      frames: downFrames,
+      frameRate: 11,
+      repeat: -1
+    });
+
+    // 2. 向上行走 (背面)
+    const upFrames = [];
+    for (let i = 0; i < 11; i++) {
+      upFrames.push({ key: `robber_up_${i}` });
+    }
+    this.anims.create({
+      key: 'robber_walk_up',
+      frames: upFrames,
+      frameRate: 13,
+      repeat: -1
+    });
+
+    // 3. 向左行走 (侧面)
+    const leftFrames = [];
+    for (let i = 0; i < 11; i++) {
+      leftFrames.push({ key: `robber_left_${i}` });
+    }
+    this.anims.create({
+      key: 'robber_walk_left',
+      frames: leftFrames,
+      frameRate: 13,
+      repeat: -1
+    });
+
+    // 4. 警车闪灯动画
+    const policeFrames = [];
+    for (let i = 0; i < 7; i++) {
+      policeFrames.push({ key: `police_car_${i}` });
+    }
+    this.anims.create({
+      key: 'police_car_flash',
+      frames: policeFrames,
+      frameRate: 10,
+      repeat: -1
     });
   }
 
   generateAllTextures() {
     this.genRobber();
-    this.genPartner();
-    this.genMoneyBag();
-    this.genCar();
+    // 使用外部图片，不再动态生成猪队友纹理
+    // this.genPartner();
+    // 使用外部图片，不再动态生成钱袋和汽车纹理
+    // this.genMoneyBag();
+    // this.genCar();
     this.genTeller();
     this.genGoldCoin();
     this.genDollarBill();

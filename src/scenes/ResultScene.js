@@ -33,13 +33,72 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   // ==================================================================
+  //  Helper: scale an image to fit a target width, keeping aspect ratio
+  // ==================================================================
+  fitImageToWidth(image, targetW) {
+    const scale = targetW / image.width;
+    image.setScale(scale);
+    return scale;
+  }
+
+  // Helper: scale to fit within a bounding box, keeping aspect ratio
+  fitImageToBox(image, maxW, maxH) {
+    const scaleX = maxW / image.width;
+    const scaleY = maxH / image.height;
+    const scale = Math.min(scaleX, scaleY);
+    image.setScale(scale);
+    return scale;
+  }
+
+  // ── Draw a dark blue rounded card panel ──
+  drawCardPanel(x, y, w, h, radius, depth) {
+    const g = this.add.graphics().setDepth(depth);
+
+    // Outer glow / border (subtle blue edge)
+    g.lineStyle(2, 0x3366aa, 0.6);
+    g.strokeRoundedRect(x, y, w, h, radius);
+
+    // Fill with dark blue
+    g.fillStyle(0x0c1a3a, 0.85);
+    g.fillRoundedRect(x, y, w, h, radius);
+
+    // Top highlight line
+    g.lineStyle(1, 0x4488cc, 0.3);
+    g.beginPath();
+    g.moveTo(x + radius, y + 1);
+    g.lineTo(x + w - radius, y + 1);
+    g.strokePath();
+
+    return g;
+  }
+
+  // ==================================================================
   //  成功逃脱
   // ==================================================================
   showSuccess(cx) {
     const data = this.result;
+    const isHighScore = this.checkIsHighScore(data.money);
 
-    // ── 背景星星粒子 ──
-    this.add.particles(cx, 400, 'goldCoin', {
+    // ── Layout constants ──
+    const HEADER_BOTTOM = 220;
+    const MONEY_CARD_TOP = 225;
+    const MONEY_CARD_BOTTOM = 410;
+    const STATS_CARD_TOP = 420;
+    const STATS_CARD_BOTTOM = 615;
+    const RETRY_BTN_Y = 665;
+    const SHARE_BTN_Y = 735;
+
+    const CARD_MARGIN = 25;
+    const CARD_WIDTH = GAME.WIDTH - CARD_MARGIN * 2;
+    const CARD_RADIUS = 16;
+
+    // 1. Full screen background
+    this.victoryBg = this.add.image(cx, GAME.HEIGHT / 2, 'victoryBg')
+      .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+      .setDepth(1);
+
+    // 2. Confetti particles
+    this.add.particles(cx, 100, 'goldCoin', {
       speed: { min: 3, max: 12 },
       angle: { min: 0, max: 360 },
       scale: { start: 0.3, end: 0 },
@@ -49,48 +108,50 @@ export default class ResultScene extends Phaser.Scene {
       quantity: 1,
       emitZone: {
         type: 'random',
-        source: new Phaser.Geom.Rectangle(-190, -400, 380, 800),
+        source: new Phaser.Geom.Rectangle(-190, -100, 380, 200),
       },
+    }).setDepth(2);
+
+    // 3. Title / Header — uniform scale to keep aspect ratio
+    const headerKey = isHighScore ? 'successHighScoreHeader' : 'successHeader';
+    const header = this.add.image(cx, HEADER_BOTTOM / 2, headerKey)
+      .setDepth(4)
+      .setScale(0);
+
+    const headerScale = this.fitImageToBox(header, GAME.WIDTH, HEADER_BOTTOM);
+    header.setScale(0); // reset for tween animation
+
+    this.tweens.add({
+      targets: header,
+      scale: headerScale,
+      duration: 600,
+      ease: 'Back.easeOut',
     });
 
-    // ── 标题 ──
-    this.time.delayedCall(300, () => {
-      const title = this.add.text(cx, 120, '🎉 成功逃脱！', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '22px',
-        color: '#ffd700',
-        stroke: '#000',
-        strokeThickness: 6,
-      }).setOrigin(0.5).setScale(0).setDepth(10);
+    this.sound.play('successSound', { volume: 0.95 });
 
-      this.tweens.add({
-        targets: title,
-        scale: 1,
-        duration: 500,
-        ease: 'Back.easeOut',
-      });
-
-      this.playTone(880, 0.15, 'square', 0.1);
-    });
+    // 4. Draw dark blue card panels
+    this.drawCardPanel(CARD_MARGIN, MONEY_CARD_TOP, CARD_WIDTH, MONEY_CARD_BOTTOM - MONEY_CARD_TOP, CARD_RADIUS, 5);
+    this.drawCardPanel(CARD_MARGIN, STATS_CARD_TOP, CARD_WIDTH, STATS_CARD_BOTTOM - STATS_CARD_TOP, CARD_RADIUS, 5);
 
     // ── 翻倍金额动画 ──
+    const moneyCenterY = (MONEY_CARD_TOP + MONEY_CARD_BOTTOM) / 2 - 10;
+    const moneySubY = moneyCenterY + 45;
+
     this.time.delayedCall(1200, () => {
-      this.animateMoneyCount(cx, data);
+      this.animateMoneyCount(cx, data, moneyCenterY, moneySubY);
     });
 
-    // ── 警察到达揭晓 ──
-    // 延迟基于实际动画时长，在 animateMoneyCount 完成后触发
+    // ── 警察到达及统计揭晓 ──
     this.time.delayedCall(800, () => {
-      // 等待计数动画完成后再显示
       const checkReady = () => {
         if (this._countDuration !== undefined) {
           const revealDelay = this._countDuration + 800;
           this.time.delayedCall(revealDelay, () => {
-            this.revealPoliceMargin(cx, data);
+            this.revealStatsPanel(cx, data, STATS_CARD_TOP, STATS_CARD_BOTTOM);
           });
           this.time.delayedCall(revealDelay + 1800, () => {
-            this.showStats(cx, data);
-            this.showRetryButton(cx, 720);
+            this.showRetryAndShareButtons(cx, RETRY_BTN_Y, SHARE_BTN_Y);
             this.updateHighScore(data.money);
           });
         } else {
@@ -101,21 +162,36 @@ export default class ResultScene extends Phaser.Scene {
     });
   }
 
-  animateMoneyCount(cx, data) {
-    const moneyText = this.add.text(cx, 300, '$0', {
+  checkIsHighScore(money) {
+    const prev = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
+    return money > prev;
+  }
+
+  animateMoneyCount(cx, data, centerY, subY) {
+    const moneyText = this.add.text(cx, centerY, '$0', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '32px',
+      fontSize: '36px',
       color: '#ffd700',
       stroke: '#000',
       strokeThickness: 8,
     }).setOrigin(0.5).setDepth(10);
 
-    const maxW = GAME.WIDTH - 40;
+    const maxW = GAME.WIDTH - 150;
 
-    // 副标题
-    const subText = this.add.text(cx, 350, '', {
+    // Decorations left/right
+    const decorLeft = this.add.image(cx, centerY, 'popupMoney')
+      .setDepth(9)
+      .setDisplaySize(42, 34)
+      .setScale(0);
+    const decorRight = this.add.image(cx, centerY, 'popupMoney')
+      .setDepth(9)
+      .setDisplaySize(42, 34)
+      .setScale(0)
+      .setFlipX(true);
+
+    const subText = this.add.text(cx, subY, '', {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '12px',
       color: '#ff6644',
       stroke: '#000',
       strokeThickness: 3,
@@ -126,14 +202,21 @@ export default class ResultScene extends Phaser.Scene {
       amount = i === 0 ? 1 : amount * 2;
       const displayAmount = amount;
       const isLast = i === data.bags - 1;
-      const delay = Math.max(40, 150 - i * 3); // 越后面越快
+      const delay = Math.max(40, 150 - i * 3);
 
       this.time.delayedCall(i * delay, () => {
         moneyText.setText(`$${displayAmount.toLocaleString()}`);
-        // 自动缩放以适应屏幕宽度
         moneyText.setScale(1);
         const targetScale = moneyText.width > maxW ? maxW / moneyText.width : 1;
         moneyText.setScale(targetScale);
+
+        // Adjust decoration positions
+        const textWidth = moneyText.width * targetScale;
+        decorLeft.x = cx - textWidth / 2 - 28;
+        decorRight.x = cx + textWidth / 2 + 28;
+
+        decorLeft.setScale(decorLeft.scaleX === 0 ? 0 : 1);
+        decorRight.setScale(decorRight.scaleX === 0 ? 0 : 1);
 
         if (i > 0) {
           subText.setText(`第${i + 1}袋 · x2 翻倍！`);
@@ -147,39 +230,38 @@ export default class ResultScene extends Phaser.Scene {
           subText.setText('第1袋');
         }
 
-        // 弹跳放大效果（基于目标缩放）
+        // Bounce text and decors
         this.tweens.add({
           targets: moneyText,
           scale: { from: targetScale * 1.3, to: targetScale },
           duration: 200,
           ease: 'Bounce.easeOut',
         });
+        this.tweens.add({
+          targets: [decorLeft, decorRight],
+          scaleX: { from: (42 / 162) * 1.3, to: 42 / 162 },
+          scaleY: { from: (34 / 131) * 1.3, to: 34 / 131 },
+          duration: 200,
+          ease: 'Bounce.easeOut',
+        });
 
-        // 金币粒子
-        this.spawnCollectParticles(cx, 300, isLast ? 20 : 4);
-
-        // 升调音效
         const freq = 400 + i * 40;
         this.playTone(freq, 0.1, 'square', 0.08);
 
-        // 最终金额定格 → 大爆炸
         if (isLast) {
           this.time.delayedCall(300, () => {
-            this.triggerMoneyExplosion(cx, moneyText, targetScale);
+            this.triggerMoneyExplosion(cx, moneyText, targetScale, decorLeft, decorRight);
           });
         }
       });
     }
 
-    // 更新后续事件的延迟（基于实际动画总时长）
     this._countDuration = data.bags * Math.max(40, 150 - data.bags * 3);
   }
 
-  triggerMoneyExplosion(cx, moneyText, targetScale = 1) {
-    // 屏幕闪金
+  triggerMoneyExplosion(cx, moneyText, targetScale = 1, decorLeft, decorRight) {
     this.cameras.main.flash(300, 255, 215, 0);
 
-    // 最终金额放大稳定
     this.tweens.add({
       targets: moneyText,
       scale: { from: targetScale * 1.5, to: targetScale * 1.1 },
@@ -187,17 +269,22 @@ export default class ResultScene extends Phaser.Scene {
       ease: 'Elastic.easeOut',
     });
 
-    // 全屏撒钱雨！
+    if (decorLeft && decorRight) {
+      this.tweens.add({
+        targets: [decorLeft, decorRight],
+        scaleX: { from: (42 / 162) * 1.5, to: (42 / 162) * 1.1 },
+        scaleY: { from: (34 / 131) * 1.5, to: (34 / 131) * 1.1 },
+        duration: 500,
+        ease: 'Elastic.easeOut',
+      });
+    }
+
     this.startMoneyRain(cx);
 
-    // 胜利音效
-    [523, 659, 784, 1047, 1318].forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 0.25, 'square', 0.1), i * 100);
-    });
+    this.sound.play('successSound', { volume: 0.95 });
   }
 
   startMoneyRain(cx) {
-    // 金币雨
     this.add.particles(cx, -20, 'goldCoin', {
       speed: { min: 30, max: 100 },
       angle: { min: 80, max: 100 },
@@ -211,276 +298,159 @@ export default class ResultScene extends Phaser.Scene {
         type: 'random',
         source: new Phaser.Geom.Rectangle(-180, 0, 360, 10),
       },
-    }).setDepth(5);
+    }).setDepth(2);
 
-    // 钞票雨
-    this.add.particles(cx, -20, 'dollarBill', {
-      speed: { min: 20, max: 80 },
+    this.add.particles(cx, -20, 'fallingBill', {
+      speed: { min: 25, max: 90 },
       angle: { min: 75, max: 105 },
-      scale: { start: 1.5, end: 0.5 },
-      alpha: { start: 0.8, end: 0.1 },
-      lifespan: 4000,
-      frequency: 80,
+      scale: { start: 0.38, end: 0.22 },
+      alpha: { start: 0.95, end: 0.3 },
+      lifespan: 4500,
+      frequency: 90,
       quantity: 1,
       rotate: { min: -180, max: 180 },
       emitZone: {
         type: 'random',
         source: new Phaser.Geom.Rectangle(-190, 0, 380, 10),
       },
-    }).setDepth(4);
+    }).setDepth(2);
   }
 
-  revealPoliceMargin(cx, data) {
+  revealStatsPanel(cx, data, cardTop, cardBottom) {
     const margin = data.margin;
     const marginSec = Math.max(0, Math.round(margin * 10) / 10);
+    const isFast = marginSec <= 3;
 
-    // 分隔线
-    const line = this.add.graphics().setDepth(10);
-    line.lineStyle(1, 0x555577, 0.6);
-    line.lineBetween(60, 460, GAME.WIDTH - 60, 460);
+    const statsContainer = this.add.container(0, 0).setDepth(15);
 
-    // 文字
-    const revealText = this.add.text(cx, 490,
-      margin > 0
-        ? `🚔 警察在你逃跑后\n${marginSec} 秒到达！`
-        : `🚔 警察在你上车的\n同时到达！`,
-      {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '12px',
-        color: '#aaccff',
-        stroke: '#000',
-        strokeThickness: 4,
-        align: 'center',
-        lineSpacing: 8,
-      }
-    ).setOrigin(0.5).setDepth(10).setScale(0);
+    // Layout within the stats card
+    const cardCenterY = (cardTop + cardBottom) / 2;
+    const row1Y = cardTop + 40;
+    const row2Y = cardCenterY + 5;
+    const row3Y = cardBottom - 30;
 
+    // Divider line
+    const dividerG = this.add.graphics().setDepth(14);
+    dividerG.lineStyle(1, 0x3366aa, 0.4);
+    dividerG.beginPath();
+    dividerG.moveTo(45, row1Y + 30);
+    dividerG.lineTo(GAME.WIDTH - 45, row1Y + 30);
+    dividerG.strokePath();
+    statsContainer.add(dividerG);
+
+    // 1. Police arrival row
+    const policeIcon = this.add.image(cx - 120, row1Y, 'popupPoliceCar')
+      .setDisplaySize(40, 32)
+      .setOrigin(0.5);
+
+    const policeText = this.add.text(cx - 85, row1Y, `警察到达：仅剩 ${marginSec} 秒！`, {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '11px',
+      color: marginSec <= 3 ? '#ff3333' : '#aaccff',
+      stroke: '#000',
+      strokeThickness: 4,
+    }).setOrigin(0, 0.5);
+
+    // 2. Speed / rating row — human icon moved down 20px
+    const humanIconKey = isFast ? 'popupHumanHappy' : 'popupHumanDisdain';
+    const humanIcon = this.add.image(cx - 120, row2Y + 20, humanIconKey)
+      .setDisplaySize(38, 40)
+      .setOrigin(0.5);
+
+    const vehicleEmoji = isFast ? '🚀' : '🐢';
+    const ratingColor = isFast ? '#66ff66' : '#ffaa66';
+    const ratingTextStr = isFast ? '身手敏捷：快如闪电！' : '太保守了吧…';
+
+    // Emoji and rating text on the SAME line, emoji to the left
+    const ratingText = this.add.text(cx - 55, row2Y + 20, `${vehicleEmoji} ${ratingTextStr}`, {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '11px',
+      color: ratingColor,
+      stroke: '#000',
+      strokeThickness: 4,
+    }).setOrigin(0, 0.5);
+
+    // 3. Bags & Time row
+    const elapsed = Math.round(data.timeUsed * 10) / 10;
+    const bagsText = this.add.text(cx, row3Y, `🎒 捡了 ${data.bags} 袋  ⏱️ 用时 ${elapsed}秒`, {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '10px',
+      color: '#ffffff',
+      stroke: '#000',
+      strokeThickness: 4,
+    }).setOrigin(0.5);
+
+    statsContainer.add([policeIcon, policeText, humanIcon, ratingText, bagsText]);
+
+    statsContainer.setScale(0);
     this.tweens.add({
-      targets: revealText,
+      targets: statsContainer,
       scale: 1,
-      duration: 400,
+      duration: 500,
       ease: 'Back.easeOut',
     });
 
-    // 称号
-    this.time.delayedCall(600, () => {
-      const title = this.getTitle(marginSec);
-      const titleText = this.add.text(cx, 545, title.text, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '16px',
-        color: title.color,
-        stroke: '#000',
-        strokeThickness: 5,
-      }).setOrigin(0.5).setDepth(10).setScale(0);
-
-      this.tweens.add({
-        targets: titleText,
-        scale: 1,
-        duration: 400,
-        ease: 'Back.easeOut',
-      });
-
-      // 千钧一发特效
-      if (marginSec <= 3) {
-        this.cameras.main.shake(300, 0.008);
-        this.cameras.main.flash(200, 255, 100, 100, true);
-        this.playTone(1200, 0.3, 'square', 0.12);
-      }
-    });
-  }
-
-  getTitle(marginSec) {
-    for (const t of TITLES) {
-      if (marginSec <= t.maxMargin) return t;
+    if (marginSec <= 3) {
+      this.cameras.main.shake(300, 0.008);
+      this.cameras.main.flash(200, 255, 100, 100, true);
+      this.playTone(1200, 0.3, 'square', 0.12);
+    } else {
+      this.playTone(800, 0.2, 'sine', 0.1);
     }
-    return TITLES[TITLES.length - 1];
   }
 
   // ==================================================================
-  //  失败画面
+  //  Retry & Share Buttons (shared by success & fail)
   // ==================================================================
-  showFail(cx) {
-    const data = this.result;
+  showRetryAndShareButtons(cx, retryY, shareY) {
+    // 1. Retry Button — use uniform scale to preserve aspect ratio
+    const retryBtn = this.add.image(cx, retryY, 'btnRetry')
+      .setDepth(15)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
 
-    // 红色暗色调背景
-    const overlay = this.add.graphics().setDepth(1);
-    overlay.fillStyle(0x330000, 0.4);
-    overlay.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+    const retryTargetW = 300;
+    const retryScale = retryTargetW / retryBtn.width;
+    retryBtn.setScale(retryScale);
 
-    // 红蓝闪烁
-    let flashCount = 0;
-    this.time.addEvent({
-      delay: 300,
-      repeat: 5,
-      callback: () => {
-        const color = flashCount % 2 === 0 ? 0xff0000 : 0x0044ff;
-        this.cameras.main.flash(150, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, true);
-        flashCount++;
-      },
-    });
+    // 2. Share Button
+    const shareBtn = this.add.image(cx, shareY, 'btnShare')
+      .setDepth(15)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
 
-    // 标题
-    this.time.delayedCall(800, () => {
-      const title = this.add.text(cx, 150, '🚔 被逮捕了！', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '22px',
-        color: '#ff4444',
-        stroke: '#000',
-        strokeThickness: 6,
-      }).setOrigin(0.5).setScale(0).setDepth(10);
+    const shareTargetW = 200;
+    const shareScale = shareTargetW / shareBtn.width;
+    shareBtn.setScale(shareScale);
 
-      this.tweens.add({
-        targets: title,
-        scale: 1,
-        duration: 500,
-        ease: 'Back.easeOut',
-      });
-
-      // 失败音效
-      [400, 350, 300, 200].forEach((f, i) => {
-        setTimeout(() => this.playTone(f, 0.4, 'sawtooth', 0.08), i * 200);
-      });
-    });
-
-    // $0 显示
-    this.time.delayedCall(1800, () => {
-      this.add.text(cx, 300, '$0', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '48px',
-        color: '#555555',
-        stroke: '#000',
-        strokeThickness: 8,
-      }).setOrigin(0.5).setDepth(10);
-    });
-
-    // 后悔提示 — 核心驱动力
-    this.time.delayedCall(3000, () => {
-      if (data.moneyIfOneLess > 0) {
-        const regretText = this.add.text(cx, 400,
-          `如果你少捡 1 袋钱…\n你本可以带走`, {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: '11px',
-            color: '#aaaaaa',
-            stroke: '#000',
-            strokeThickness: 3,
-            align: 'center',
-            lineSpacing: 8,
-          }
-        ).setOrigin(0.5).setDepth(10).setAlpha(0);
-
-        this.tweens.add({
-          targets: regretText,
-          alpha: 1,
-          duration: 500,
-        });
-
-        this.time.delayedCall(800, () => {
-          const maxW = GAME.WIDTH - 40;
-          const amountText = this.add.text(cx, 470,
-            `$${data.moneyIfOneLess.toLocaleString()}`, {
-              fontFamily: '"Press Start 2P", monospace',
-              fontSize: '28px',
-              color: '#ffd700',
-              stroke: '#000',
-              strokeThickness: 6,
-            }
-          ).setOrigin(0.5).setDepth(10).setScale(0);
-
-          // 自动缩放适配屏幕
-          const fitScale = amountText.width > maxW ? maxW / amountText.width : 1;
-
-          this.tweens.add({
-            targets: amountText,
-            scale: fitScale,
-            duration: 400,
-            ease: 'Back.easeOut',
-          });
-
-          // 扎心音效
-          this.playTone(600, 0.2, 'triangle', 0.1);
-          setTimeout(() => this.playTone(800, 0.15, 'triangle', 0.08), 150);
-        });
-      }
-
-      // 显示统计信息
-      this.time.delayedCall(1500, () => {
-        const statsY = data.moneyIfOneLess > 0 ? 540 : 450;
-
-        this.add.text(cx, statsY,
-          `捡了 ${data.bags} 袋 · 累积 $${(data.totalMoneyBeforeCaught || 0).toLocaleString()}`, {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: '9px',
-            color: '#777777',
-            stroke: '#000',
-            strokeThickness: 2,
-          }
-        ).setOrigin(0.5).setDepth(10);
-
-        this.showRetryButton(cx, 680);
-      });
-    });
-  }
-
-  // ==================================================================
-  //  通用 UI
-  // ==================================================================
-  showStats(cx, data) {
-    const elapsed = Math.round(data.timeUsed * 10) / 10;
-    this.add.text(cx, 610,
-      `捡了 ${data.bags} 袋 · 用时 ${elapsed}秒`, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '9px',
-        color: '#8888aa',
-        stroke: '#000',
-        strokeThickness: 2,
-      }
-    ).setOrigin(0.5).setDepth(10);
-  }
-
-  showRetryButton(cx, y) {
-    // 按钮背景
-    const btnW = 220, btnH = 52;
-    const bg = this.add.graphics().setDepth(10);
-    bg.fillStyle(0x4488ff, 1);
-    bg.fillRoundedRect(cx - btnW / 2, y, btnW, btnH, 12);
-    bg.lineStyle(2, 0x88bbff);
-    bg.strokeRoundedRect(cx - btnW / 2, y, btnW, btnH, 12);
-
-    const btnText = this.add.text(cx, y + btnH / 2, '🔄 再来一次！', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '13px',
-      color: '#ffffff',
-    }).setOrigin(0.5).setDepth(11);
-
-    // 入场动画
-    bg.setAlpha(0);
-    btnText.setAlpha(0);
     this.tweens.add({
-      targets: [bg, btnText],
+      targets: [retryBtn, shareBtn],
       alpha: 1,
       duration: 400,
     });
 
-    // 呼吸
+    // Breathing pulse — uniform scale
     this.tweens.add({
-      targets: [bg, btnText],
-      scaleX: { from: 1, to: 1.03 },
-      scaleY: { from: 1, to: 1.03 },
+      targets: retryBtn,
+      scale: { from: retryScale, to: retryScale * 1.04 },
       duration: 600,
       yoyo: true,
       repeat: -1,
-      delay: 500,
     });
 
-    // 点击
-    const zone = this.add.zone(cx, y + btnH / 2, btnW, btnH)
-      .setInteractive({ useHandCursor: true })
-      .setDepth(12);
+    this.tweens.add({
+      targets: shareBtn,
+      scale: { from: shareScale, to: shareScale * 1.04 },
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      delay: 150,
+    });
 
-    zone.on('pointerdown', () => {
+    retryBtn.on('pointerdown', () => {
       this.tweens.add({
-        targets: [bg, btnText],
-        scale: 0.93,
+        targets: retryBtn,
+        scale: retryScale * 0.9,
         duration: 80,
         yoyo: true,
         onComplete: () => {
@@ -492,27 +462,76 @@ export default class ResultScene extends Phaser.Scene {
       });
     });
 
-    // ── 分享按钮（仅成功时） ──
-    if (this.result.success) {
-      const shareY = y + 70;
-      const shareTxt = this.add.text(cx, shareY, '📤 复制战绩', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '10px',
-        color: '#aaaacc',
-      }).setOrigin(0.5).setDepth(11).setInteractive({ useHandCursor: true });
-
-      shareTxt.on('pointerdown', () => {
-        const margin = Math.round(this.result.margin * 10) / 10;
-        const shareText = `🏦 一分钟劫匪 🏦\n💰 抢到 $${this.result.money.toLocaleString()}\n🎒 捡了 ${this.result.bags} 袋\n🚔 警察差 ${margin}秒 才到\n你能比我多抢吗？`;
-        navigator.clipboard?.writeText(shareText).then(() => {
-          shareTxt.setText('✅ 已复制！');
-          this.time.delayedCall(1500, () => shareTxt.setText('📤 复制战绩'));
-        }).catch(() => {
-          shareTxt.setText('❌ 复制失败');
-          this.time.delayedCall(1500, () => shareTxt.setText('📤 复制战绩'));
-        });
+    shareBtn.on('pointerdown', () => {
+      this.tweens.add({
+        targets: shareBtn,
+        scale: shareScale * 0.9,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          const margin = Math.round(this.result.margin * 10) / 10;
+          const shareText = `🏦 一分钟劫匪 🏦\n💰 抢到 $${this.result.money.toLocaleString()}\n🎒 捡了 ${this.result.bags} 袋\n🚔 警察差 ${margin}秒 才到\n你能比我多抢吗？`;
+          navigator.clipboard?.writeText(shareText).then(() => {
+            const copiedText = this.add.text(cx, shareY + 40, '✅ 战绩已复制到剪贴板！', {
+              fontFamily: '"Press Start 2P", monospace',
+              fontSize: '9px',
+              color: '#66ff66',
+              stroke: '#000',
+              strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(20);
+            this.time.delayedCall(1500, () => copiedText.destroy());
+          }).catch(() => {
+            const copiedText = this.add.text(cx, shareY + 40, '❌ 复制失败，请重试', {
+              fontFamily: '"Press Start 2P", monospace',
+              fontSize: '9px',
+              color: '#ff4444',
+              stroke: '#000',
+              strokeThickness: 3,
+            }).setOrigin(0.5).setDepth(20);
+            this.time.delayedCall(1500, () => copiedText.destroy());
+          });
+        },
       });
-    }
+    });
+  }
+
+  showRetryButton(cx, y) {
+    const retryBtn = this.add.image(cx, y + 26, 'btnRetry')
+      .setDepth(15)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
+
+    const retryScale = 300 / retryBtn.width;
+    retryBtn.setScale(retryScale);
+
+    this.tweens.add({
+      targets: retryBtn,
+      alpha: 1,
+      duration: 400,
+    });
+
+    this.tweens.add({
+      targets: retryBtn,
+      scale: { from: retryScale, to: retryScale * 1.04 },
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    retryBtn.on('pointerdown', () => {
+      this.tweens.add({
+        targets: retryBtn,
+        scale: retryScale * 0.9,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          this.cameras.main.fadeOut(300, 0, 0, 0);
+          this.time.delayedCall(350, () => {
+            this.scene.start('GameScene');
+          });
+        },
+      });
+    });
   }
 
   updateHighScore(money) {
@@ -520,9 +539,8 @@ export default class ResultScene extends Phaser.Scene {
     if (money > prev) {
       localStorage.setItem('heist_highscore', money.toString());
 
-      // NEW HIGH SCORE 提示
       const cx = GAME.WIDTH / 2;
-      const hs = this.add.text(cx, 170, '🏆 NEW HIGH SCORE!', {
+      const hs = this.add.text(cx, 260, '🏆 NEW HIGH SCORE!', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '13px',
         color: '#ffee44',
@@ -539,7 +557,6 @@ export default class ResultScene extends Phaser.Scene {
         ease: 'Back.easeOut',
       });
 
-      // 闪烁
       this.tweens.add({
         targets: hs,
         alpha: { from: 1, to: 0.5 },
@@ -549,6 +566,188 @@ export default class ResultScene extends Phaser.Scene {
         delay: 1000,
       });
     }
+  }
+
+  // ==================================================================
+  //  失败 — 被逮捕了
+  // ==================================================================
+  showFail(cx) {
+    const data = this.result;
+
+    // ── Layout constants matching reference ──
+    //   Top area: 0-300  → fail header/title
+    //   Info card: 310-620
+    //   Retry btn: 660
+    //   Share btn: 730
+
+    const HEADER_BOTTOM = 210;
+    const CARD_TOP = 225;
+    const CARD_BOTTOM = 610;
+    const RETRY_BTN_Y = 660;
+    const SHARE_BTN_Y = 730;
+
+    const CARD_MARGIN = 25;
+    const CARD_WIDTH = GAME.WIDTH - CARD_MARGIN * 2;
+    const CARD_RADIUS = 16;
+
+    // 1. Full screen jail background
+    this.add.image(cx, GAME.HEIGHT / 2, 'failBg')
+      .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+      .setDepth(1);
+
+    // 2. Red/blue police flash overlay (subtle, pulsing)
+    const flashOverlay = this.add.graphics().setDepth(2);
+    this.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      onUpdate: (tween) => {
+        flashOverlay.clear();
+        const v = tween.getValue();
+        // Alternate red and blue tint
+        if (v < 0.5) {
+          flashOverlay.fillStyle(0xff0000, v * 0.06);
+        } else {
+          flashOverlay.fillStyle(0x0044ff, (1 - v) * 0.06);
+        }
+        flashOverlay.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+      },
+    });
+
+    // 3. Fail header — "被逮捕了！" with uniform scale
+    const header = this.add.image(cx, HEADER_BOTTOM / 2 + 10, 'failHeader')
+      .setDepth(4)
+      .setScale(0);
+
+    const failHeaderScale = this.fitImageToBox(header, GAME.WIDTH - 20, HEADER_BOTTOM - 20);
+    header.setScale(0);
+
+    this.tweens.add({
+      targets: header,
+      scale: failHeaderScale,
+      duration: 600,
+      ease: 'Back.easeOut',
+    });
+
+    // Camera shake for dramatic effect
+    this.cameras.main.shake(400, 0.01);
+
+    // Play fail sound
+    this.sound.play('failSound', { volume: 0.57 });
+
+    // 4. Draw the info card panel
+    this.drawCardPanel(CARD_MARGIN, CARD_TOP, CARD_WIDTH, CARD_BOTTOM - CARD_TOP, CARD_RADIUS, 5);
+
+    // 5. Reveal fail stats after header animation
+    this.time.delayedCall(1000, () => {
+      this.revealFailStats(cx, data, CARD_TOP, CARD_BOTTOM);
+    });
+
+    // 6. Buttons
+    this.time.delayedCall(2500, () => {
+      this.showRetryAndShareButtons(cx, RETRY_BTN_Y, SHARE_BTN_Y);
+    });
+  }
+
+  revealFailStats(cx, data, cardTop, cardBottom) {
+    const statsContainer = this.add.container(0, 0).setDepth(15);
+
+    // ── Layout inside the fail card ──
+    const moneyY = cardTop + 75;        // ¥0 big text
+    const hintY = cardTop + 160;        // "如果你少抢1袋钱..."
+    const hintY2 = cardTop + 195;       // "你本可以带走"
+    const couldHaveY = cardTop + 250;   // ¥512 golden text
+    const summaryY = cardBottom - 45;   // "抢了X袋 · 罚没¥Y"
+
+    // 1. ¥0 — big grey text showing zero earnings
+    const zeroText = this.add.text(cx, moneyY, '$0', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '48px',
+      color: '#888899',
+      stroke: '#000',
+      strokeThickness: 8,
+    }).setOrigin(0.5).setDepth(10);
+
+    // 2. "如果你少抢1袋钱…" hint
+    const moneyIfOneLess = data.moneyIfOneLess || 0;
+    const hintText1 = this.add.text(cx, hintY, '如果你少抢 1 袋钱…', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '11px',
+      color: '#aaaacc',
+      stroke: '#000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(10);
+
+    const hintText2 = this.add.text(cx, hintY2, '你本可以带走', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '11px',
+      color: '#aaaacc',
+      stroke: '#000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(10);
+
+    // 3. Could-have money — golden big text
+    const couldHaveText = this.add.text(cx, couldHaveY, `$${moneyIfOneLess.toLocaleString()}`, {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '32px',
+      color: '#ffd700',
+      stroke: '#000',
+      strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(10);
+
+    // Divider
+    const divG = this.add.graphics().setDepth(14);
+    divG.lineStyle(1, 0x445577, 0.5);
+    divG.beginPath();
+    divG.moveTo(45, couldHaveY + 35);
+    divG.lineTo(GAME.WIDTH - 45, couldHaveY + 35);
+    divG.strokePath();
+
+    // 4. Summary row
+    const totalBeforeCaught = data.totalMoneyBeforeCaught || 0;
+    const summaryStr = `💰 抢了 ${data.bags} 袋 · 罚没 $${totalBeforeCaught.toLocaleString()}`;
+    const summaryText = this.add.text(cx, summaryY, summaryStr, {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '10px',
+      color: '#ffffff',
+      stroke: '#000',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(10);
+
+    statsContainer.add([zeroText, hintText1, hintText2, couldHaveText, divG, summaryText]);
+
+    // Animate in
+    statsContainer.setScale(0);
+    this.tweens.add({
+      targets: statsContainer,
+      scale: 1,
+      duration: 500,
+      ease: 'Back.easeOut',
+    });
+
+    // Bounce the $0 for dramatic effect
+    this.tweens.add({
+      targets: zeroText,
+      scale: { from: 1.4, to: 1 },
+      duration: 400,
+      ease: 'Bounce.easeOut',
+      delay: 200,
+    });
+
+    // Flash the could-have amount
+    this.time.delayedCall(600, () => {
+      this.tweens.add({
+        targets: couldHaveText,
+        scale: { from: 0.5, to: 1 },
+        alpha: { from: 0, to: 1 },
+        duration: 500,
+        ease: 'Back.easeOut',
+      });
+    });
+
+    this.playTone(200, 0.4, 'sawtooth', 0.08);
   }
 
   // ==================================================================

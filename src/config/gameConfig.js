@@ -3,8 +3,8 @@
 // ============================================================
 
 export const GAME = {
-  WIDTH: 390,
-  HEIGHT: 844,
+  WIDTH: 450,
+  HEIGHT: 800,
 };
 
 export const TIMER = {
@@ -20,7 +20,7 @@ export const MONEY = {
 export const ROBBER = {
   SPEED: 110,                // 正常移动速度 (px/s) — 慢一点，每袋都有成本
   ESCAPE_SPEED: 165,         // 逃跑冲刺速度 (px/s)
-  START_X: 195,
+  START_X: 225,
   START_Y: 520,
   COLLECT_RADIUS: 18,        // 捡拾判定半径
 };
@@ -30,19 +30,19 @@ export const BAGS = {
   MAX_COUNT: 150,
   MIN_DISTANCE: 22,          // 钱袋间最小距离（铺满整个地面）
   AREA: {
-    minX: 50, maxX: 340,
-    minY: 165, maxY: 625,
+    minX: 65, maxX: 385,
+    minY: 180, maxY: 580,
   },
 };
 
 export const CAR = {
-  X: 195,
-  Y: 770,
+  X: 225,
+  Y: 740,
 };
 
 export const PARTNER = {
-  X: 258,
-  Y: 755,
+  X: 290,
+  Y: 715,
 };
 
 // 银行布局 Y 轴分段
@@ -50,9 +50,9 @@ export const BANK = {
   COUNTER_Y: 60,
   COUNTER_H: 50,
   FLOOR_TOP: 130,
-  FLOOR_BOTTOM: 660,
-  ENTRANCE_Y: 660,
-  OUTSIDE_Y: 700,
+  FLOOR_BOTTOM: 620,
+  ENTRANCE_Y: 620,
+  OUTSIDE_Y: 660,
 };
 
 // 猪队友对话（仅在报警时说一句，不再按时间触发）

@@ -4,6 +4,12 @@ import {
   BANK, PARTNER_LINES, ROBBER_LINES, ROBBER_QUIPS,
 } from '../config/gameConfig.js';
 
+const BAG_SCALE = 0.48;
+const PARTNER_SCALE = 42 / 104;
+
+// 主角显示尺寸
+const ROBBER_DISPLAY_H = 40;  // 主角显示高度 (px)
+
 // ============================================================
 // GameScene — 核心游戏：银行场景、捡钱、倒计时、逃跑
 // ============================================================
@@ -64,95 +70,39 @@ export default class GameScene extends Phaser.Scene {
   //  银行场景绘制
   // ==================================================================
   drawBankInterior() {
-    const g = this.add.graphics();
+    // 1. 游戏主画面 (底图层，深度为 1)
+    this.bg = this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'gameBg')
+      .setDepth(1)
+      .setDisplaySize(GAME.WIDTH, GAME.HEIGHT);
 
-    // ── 银行地板（浅大理石） ──
-    g.fillStyle(0xf0ead6);
-    g.fillRect(0, 0, GAME.WIDTH, BANK.OUTSIDE_Y);
-
-    // 地砖网格
-    g.lineStyle(1, 0xe0d8c4, 0.25);
-    for (let x = 0; x <= GAME.WIDTH; x += 65) {
-      g.lineBetween(x, BANK.FLOOR_TOP, x, BANK.FLOOR_BOTTOM);
-    }
-    for (let y = BANK.FLOOR_TOP; y <= BANK.FLOOR_BOTTOM; y += 65) {
-      g.lineBetween(0, y, GAME.WIDTH, y);
-    }
-
-    // ── 墙壁 ──
-    g.fillStyle(0x3d3d5c);
-    g.fillRect(0, 0, GAME.WIDTH, 16);
-    g.fillRect(0, 0, 16, BANK.FLOOR_BOTTOM);
-    g.fillRect(GAME.WIDTH - 16, 0, 16, BANK.FLOOR_BOTTOM);
-
-    // 墙壁装饰线
-    g.lineStyle(2, 0x555577);
-    g.lineBetween(16, 16, GAME.WIDTH - 16, 16);
-
-    // ── 柜台 ──
-    g.fillStyle(0x5c3d2e);
-    g.fillRect(25, BANK.COUNTER_Y, GAME.WIDTH - 50, BANK.COUNTER_H);
-    // 柜台高光
-    g.fillStyle(0x7a5240);
-    g.fillRect(25, BANK.COUNTER_Y, GAME.WIDTH - 50, 8);
-    // 柜台前沿
-    g.fillStyle(0x4a2e20);
-    g.fillRect(25, BANK.COUNTER_Y + BANK.COUNTER_H - 4, GAME.WIDTH - 50, 4);
-
-    // ── 柜员窗口 ──
-    const windowY = 18;
-    const windowH = BANK.COUNTER_Y - windowY - 2;
-    [75, 170, 265].forEach(wx => {
-      g.fillStyle(0x88bbdd, 0.25);
-      g.fillRect(wx, windowY, 55, windowH);
-      g.lineStyle(2, 0x666688);
-      g.strokeRect(wx, windowY, 55, windowH);
-    });
-
-    // ── 装饰柱子 ──
-    [[55, 230], [335, 230], [55, 440], [335, 440]].forEach(([px, py]) => {
-      g.fillStyle(0xd4c5a9);
-      g.fillCircle(px, py, 12);
-      g.fillStyle(0xbfb08d);
-      g.fillCircle(px, py, 8);
-    });
-
-    // ── 绳索护栏 ──
-    g.lineStyle(2, 0xccaa44, 0.5);
-    g.lineBetween(55, 230, 55, 440);
-    g.lineBetween(335, 230, 335, 440);
-
-    // ── 银行出口区 ──
-    g.fillStyle(0x3a3a50);
-    g.fillRect(0, BANK.ENTRANCE_Y, GAME.WIDTH, BANK.OUTSIDE_Y - BANK.ENTRANCE_Y);
-
-    // 玻璃门
-    g.fillStyle(0x88aacc, 0.35);
-    g.fillRect(130, BANK.ENTRANCE_Y, 130, 30);
-    g.lineStyle(2, 0xaaccee, 0.6);
-    g.strokeRect(130, BANK.ENTRANCE_Y, 65, 30);
-    g.strokeRect(195, BANK.ENTRANCE_Y, 65, 30);
-
-    // ── 室外（街道） ──
-    g.fillStyle(0x252535);
-    g.fillRect(0, BANK.OUTSIDE_Y, GAME.WIDTH, GAME.HEIGHT - BANK.OUTSIDE_Y);
-
-    // 人行道
-    g.fillStyle(0x404055);
-    g.fillRect(0, BANK.OUTSIDE_Y, GAME.WIDTH, 18);
-
-    // 路面标线
-    g.fillStyle(0x555565, 0.4);
-    g.fillRect(50, 800, 40, 3);
-    g.fillRect(150, 800, 40, 3);
-    g.fillRect(250, 800, 40, 3);
+    // 2. 游戏主画面2 (叠加层，深度为 2，游戏一开始覆盖在主画面上)
+    this.bgOverlay = this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'gameBg2')
+      .setDepth(2)
+      .setDisplaySize(GAME.WIDTH, GAME.HEIGHT);
   }
 
   // ==================================================================
   //  游戏对象创建
   // ==================================================================
   createGetawayCar() {
-    this.car = this.add.image(CAR.X, CAR.Y, 'car').setDepth(5);
+    // 汽车阴影 (通过多层叠加实现边缘模糊渐变效果，渲染在 depth 4)
+    this.carShadow = this.add.graphics()
+      .setDepth(4);
+    const shadowLayers = 6;
+    for (let j = 0; j < shadowLayers; j++) {
+      const w = 56 + (j * 4);
+      const h = 92 + (j * 5);
+      const alpha = 0.12 - (j * 0.02);
+      this.carShadow.fillStyle(0x000000, alpha);
+      this.carShadow.fillEllipse(0, 0, w, h);
+    }
+    this.carShadow.x = CAR.X + 3;
+    this.carShadow.y = CAR.Y + 6;
+
+    // 抢匪汽车替换为新图片并设置合适的缩放大小
+    this.car = this.add.image(CAR.X, CAR.Y, 'car')
+      .setDepth(5)
+      .setDisplaySize(56, 92);
 
     // 汽车怠速微颤
     this.tweens.add({
@@ -165,11 +115,22 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createPartnerChar() {
-    this.partner = this.add.image(PARTNER.X, PARTNER.Y, 'partner').setDepth(6);
+    // 门外的抢匪影子 (黑色的半透明椭圆，渲染在 depth 5)
+    this.partnerShadow = this.add.graphics()
+      .setDepth(5)
+      .fillStyle(0x000000, 0.24)
+      .fillEllipse(0, 0, 30, 9);
+    this.partnerShadow.x = PARTNER.X;
+    this.partnerShadow.y = PARTNER.Y + 20;
 
-    // 猪队友紧张踱步
+    // 门外的抢匪（猪队友）替换为 劫匪2.png，并设置等比缩放大小
+    this.partner = this.add.image(PARTNER.X, PARTNER.Y, 'partner')
+      .setDepth(6)
+      .setScale(PARTNER_SCALE);
+
+    // 猪队友及影子同步紧张踱步
     this.partnerPaceTween = this.tweens.add({
-      targets: this.partner,
+      targets: [this.partner, this.partnerShadow],
       x: { from: PARTNER.X - 12, to: PARTNER.X + 12 },
       duration: 1200,
       yoyo: true,
@@ -179,12 +140,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createTellers() {
+    // 门内的柜员已经画在背景图上，这里不再生成多余且悬空的柜员小人
     this.tellers = [];
-    [102, 197, 292].forEach(tx => {
-      const t = this.add.image(tx, 45, 'teller').setDepth(3).setScale(1.1);
-      t.setAlpha(0); // 开场动画后显示
-      this.tellers.push(t);
-    });
   }
 
   createMoneyBags() {
@@ -218,12 +175,22 @@ export default class GameScene extends Phaser.Scene {
     }
 
     placed.forEach(pos => {
+      // 钱袋影子 (黑色的半透明椭圆，大小调为 20x8 更为显眼，渲染在 depth 7)
+      const shadow = this.add.graphics()
+        .setDepth(7)
+        .setAlpha(0);
+      shadow.fillStyle(0x000000, 0.32);
+      shadow.fillEllipse(0, 0, 20, 8);
+      shadow.x = pos.x;
+      shadow.y = pos.y + 10;
+
       const bag = this.add.image(pos.x, pos.y, 'moneybag')
         .setDepth(8)
-        .setScale(0)        // 开场动画中弹出
+        .setScale(0)        // 开始时 scale 设为 0 (配合弹出动画)
         .setAlpha(0)
         .setInteractive({ useHandCursor: true, pixelPerfect: false });
 
+      bag.shadow = shadow; // 关联影子到钱袋对象
       bag.collected = false;
       bag.on('pointerdown', () => this.onBagClicked(bag));
       this.moneyBags.push(bag);
@@ -231,19 +198,47 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createRobber() {
-    this.robber = this.add.image(ROBBER.START_X, GAME.HEIGHT + 50, 'robber')
-      .setDepth(10)
-      .setScale(1.2);
+    // 主角抢匪：初始使用背面静止图（从底部走入银行）
+    this.robber = this.add.sprite(ROBBER.START_X, GAME.HEIGHT + 50, 'robber_idle_back')
+      .setDepth(10);
+    this.applyRobberScale('robber_idle_back');
 
-    // 走路时的左右摇摆（用角度，不影响坐标）
+    // 主角脚下的影子
+    this.robberShadow = this.add.graphics().setDepth(9);
+    this.robberShadow.fillStyle(0x000000, 0.28);
+    this.robberShadow.fillEllipse(0, 0, 24, 8);
+    this.robberShadow.x = this.robber.x;
+    this.robberShadow.y = this.robber.y + ROBBER_DISPLAY_H / 2 + 2;
+
+    // 记录当前朝向，用于站定时选择正确的静止图
+    this.robberDirection = 'up'; // 初始向上走进银行
+
+    // 用空目标代替，因为我们现在有了真正的多方向行走动画
     this.robberBobTween = this.tweens.add({
-      targets: this.robber,
-      angle: { from: -4, to: 4 },
+      targets: [],
       duration: 150,
-      yoyo: true,
-      repeat: -1,
       paused: true,
     });
+  }
+
+  /**
+   * 根据纹理原始高度计算 scale，保证显示高度始终为 ROBBER_DISPLAY_H。
+   * 使用 setScale（而非 setDisplaySize）确保动画播放时每帧都能正确显示。
+   */
+  applyRobberScale(textureKey) {
+    const frame = this.textures.getFrame(textureKey);
+    if (frame) {
+      const s = ROBBER_DISPLAY_H / frame.height;
+      this.robber.setScale(s);
+    }
+  }
+
+  /** 同步影子位置到主角脚下 */
+  updateRobberShadow() {
+    if (this.robberShadow) {
+      this.robberShadow.x = this.robber.x;
+      this.robberShadow.y = this.robber.y + ROBBER_DISPLAY_H / 2 + 2;
+    }
   }
 
   createHUD() {
@@ -277,25 +272,25 @@ export default class GameScene extends Phaser.Scene {
 
     this.escBtnContainer = this.add.container(bx, by).setDepth(100).setAlpha(0);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(0xdd3333, 0.92);
-    bg.fillRoundedRect(-56, -22, 112, 44, 12);
-    bg.lineStyle(2, 0xff7777, 0.8);
-    bg.strokeRoundedRect(-56, -22, 112, 44, 12);
+    const escapeImg = this.add.image(0, 0, 'btnEscape')
+      .setDisplaySize(96, 51);
 
-    const txt = this.add.text(0, 0, '🚗 逃跑!', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '12px',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-
-    this.escBtnContainer.add([bg, txt]);
-    this.escBtnContainer.setSize(112, 44);
+    this.escBtnContainer.add([escapeImg]);
+    this.escBtnContainer.setSize(96, 51);
     this.escBtnContainer.setInteractive({ useHandCursor: true });
 
     this.escBtnContainer.on('pointerdown', () => {
       if (!this.introPlaying && !this.gameEnded) {
-        this.startEscape();
+        // 点击缩放反馈效果
+        this.tweens.add({
+          targets: this.escBtnContainer,
+          scale: 0.9,
+          duration: 80,
+          yoyo: true,
+          onComplete: () => {
+            this.startEscape();
+          }
+        });
       }
     });
 
@@ -334,12 +329,28 @@ export default class GameScene extends Phaser.Scene {
         at: 0,
         run: () => {
           this.robberBobTween.resume();
+          this.applyRobberScale('robber_up_0'); // 行走时用行走帧尺寸
+          this.robber.play('robber_walk_up'); // 走近银行（向上），播放背面行走动画
           this.tweens.add({
             targets: this.robber,
             y: ROBBER.START_Y,
             duration: 1400,
             ease: 'Sine.easeOut',
-            onComplete: () => this.robberBobTween.pause(),
+            onUpdate: () => {
+              // 抢匪进入银行之后（走到门口门禁线以上时），叠加图 gameBg2 换成 gameBg3
+              if (this.robber.y <= BANK.ENTRANCE_Y + 10 && this.bgOverlay && this.bgOverlay.active) {
+                if (this.bgOverlay.texture.key !== 'gameBg3') {
+                  this.bgOverlay.setTexture('gameBg3');
+                }
+              }
+              // 同步影子位置
+              this.updateRobberShadow();
+            },
+            onComplete: () => {
+              this.robberBobTween.pause();
+              this.robber.anims.stop();
+              this.setRobberIdle('down'); // 站定朝前方，使用正面静止图
+            },
           });
         },
       },
@@ -358,8 +369,16 @@ export default class GameScene extends Phaser.Scene {
             onComplete: () => flash.destroy(),
           });
 
-          // 劫匪台词
-          this.showBubble(this.robber, ROBBER_LINES.threat, 2000);
+          // 劫匪第一句台词 + 语音
+          this.showBubble(this.robber, ROBBER_LINES.threat, 3000);
+          const voice1 = this.sound.add('voiceLine1');
+          voice1.play({ volume: 1 });
+
+          // 等第一句语音播完后再出第二句
+          voice1.once('complete', () => {
+            this.showBubble(this.robber, ROBBER_LINES.noAlarm, 2500);
+            this.sound.play('voiceLine2', { volume: 1 });
+          });
 
           // 屏幕微震
           this.cameras.main.shake(200, 0.005);
@@ -381,13 +400,6 @@ export default class GameScene extends Phaser.Scene {
           });
         },
       },
-      // 3200ms — 劫匪再说一句
-      {
-        at: 3200,
-        run: () => {
-          this.showBubble(this.robber, ROBBER_LINES.noAlarm, 1800);
-        },
-      },
       // 4500ms — 钱袋从柜台散落
       {
         at: 4500,
@@ -402,27 +414,70 @@ export default class GameScene extends Phaser.Scene {
             bag.x = Phaser.Math.Between(80, GAME.WIDTH - 80);
             bag.y = BANK.COUNTER_Y + BANK.COUNTER_H;
 
+            // 钱袋快速落地的动画 (加快下落速度)
             this.tweens.add({
               targets: bag,
               x: targetX,
               y: targetY,
               alpha: 1,
-              scale: { from: 0.3, to: 1 },
-              duration: 700,
-              delay: i * 60,
+              scale: { from: 0.3 * BAG_SCALE, to: BAG_SCALE },
+              duration: 350,
+              delay: i * 7,
               ease: 'Bounce.easeOut',
+              onComplete: () => {
+                // 每隔 4 个钱袋落地时播放一次金币音效，并加入随机音调偏移（detune），模拟哗啦啦下落的声音
+                if (i % 4 === 0) {
+                  this.sound.play('collectSound', {
+                    volume: 0.2,
+                    detune: Phaser.Math.Between(-400, 400),
+                  });
+                }
+              },
             });
+
+            // 影子同步淡入和缩放动画 (Phaser 3 中 Graphics 的 scaleTween 需直接改变 scaleX 和 scaleY)
+            if (bag.shadow) {
+              this.tweens.add({
+                targets: bag.shadow,
+                alpha: { from: 0, to: 1 },
+                scaleX: { from: 0.2, to: 1 },
+                scaleY: { from: 0.2, to: 1 },
+                duration: 350,
+                delay: i * 7,
+                ease: 'Bounce.easeOut',
+              });
+            }
           });
         },
       },
-      // 6000ms — 开场结束，可以开始玩
+      // 6000ms — 所有钱袋掉落完成，开始可以抢劫
       {
-        at: 6200,
+        at: 6000,
         run: () => {
           this.introPlaying = false;
 
+          // 切换图片为 gameBg4 并开启害怕发抖效果
+          if (this.bgOverlay && this.bgOverlay.active) {
+            this.bgOverlay.setTexture('gameBg4');
+
+            // 快速左右微弱抖动，模拟人害怕颤抖的效果
+            this.tweens.add({
+              targets: this.bgOverlay,
+              x: { from: GAME.WIDTH / 2 - 1.5, to: GAME.WIDTH / 2 + 1.5 },
+              y: { from: GAME.HEIGHT / 2 - 1, to: GAME.HEIGHT / 2 + 1 },
+              duration: 45,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
+          }
+
+          // 开始可以抢劫的时候播放抢劫背景音乐直到本局游戏结束，开启循环
+          this.robberyMusic = this.sound.add('robberyMusic', { loop: true });
+          this.robberyMusic.play();
+
           // 显示提示
-          this.promptText.setText('👆 点击钱袋开始捡钱！');
+          this.promptText.setText('👆 点击钱袋开始抢钱！');
           this.tweens.add({
             targets: this.promptText,
             alpha: { from: 0, to: 1 },
@@ -433,7 +488,7 @@ export default class GameScene extends Phaser.Scene {
           this.moneyBags.forEach((bag, i) => {
             this.tweens.add({
               targets: bag,
-              scale: { from: 0.92, to: 1.08 },
+              scale: { from: 0.92 * BAG_SCALE, to: 1.08 * BAG_SCALE },
               duration: 600 + (i % 4) * 100,
               yoyo: true,
               repeat: -1,
@@ -507,6 +562,8 @@ export default class GameScene extends Phaser.Scene {
       this.robber.y = target.y;
       this.robber.angle = 0;
       this.robberBobTween.pause();
+      this.robber.anims.stop();
+      this.setRobberIdle('down'); // 站定始终正面面对观众
 
       if (target === this.car) {
         this.onReachedCar();
@@ -518,9 +575,67 @@ export default class GameScene extends Phaser.Scene {
       this.robber.x += (dx / dist) * step;
       this.robber.y += (dy / dist) * step;
 
-      // 水平翻转朝向
-      this.robber.setFlipX(dx < 0);
+      // 根据实际行走方向，动态选择向上（背面）、向下（正面）、向左/右（侧面）的行走动画
+      this.setRobberWalkAnimation(dx, dy);
+
+      // 同步影子
+      this.updateRobberShadow();
     }
+  }
+
+  setRobberWalkAnimation(dx, dy) {
+    const curKey = this.robber.anims.currentAnim?.key;
+    const playing = this.robber.anims.isPlaying;
+
+    if (dy < 0) {
+      // 往屏幕上方走（含斜上方）→ 背面行走
+      this.robberDirection = 'up';
+      if (curKey !== 'robber_walk_up' || !playing) {
+        this.robber.play('robber_walk_up');
+        this.applyRobberScale('robber_up_0');
+      }
+      this.robber.setFlipX(false);
+    } else {
+      // 往屏幕下方 / 水平移动 → 正面行走
+      this.robberDirection = 'down';
+      if (curKey !== 'robber_walk_down' || !playing) {
+        this.robber.play('robber_walk_down');
+        this.applyRobberScale('robber_down_0');
+      }
+      this.robber.setFlipX(false);
+    }
+  }
+
+  /**
+   * 设置劫匪静止状态：停止动画，切换为对应方向的静止图，使用静止缩放
+   */
+  setRobberIdle(direction) {
+    this.robberDirection = direction;
+    this.robber.setFlipX(false);
+
+    let textureKey;
+    switch (direction) {
+      case 'down':
+        textureKey = 'robber_idle_front';
+        break;
+      case 'up':
+        textureKey = 'robber_idle_back';
+        break;
+      case 'left':
+        textureKey = 'robber_idle_left';
+        break;
+      case 'right':
+        textureKey = 'robber_idle_left';
+        this.robber.setFlipX(true);
+        break;
+      default:
+        textureKey = 'robber_idle_front';
+        break;
+    }
+
+    this.robber.setTexture(textureKey);
+    this.applyRobberScale(textureKey);
+    this.updateRobberShadow();
   }
 
   // ==================================================================
@@ -551,6 +666,18 @@ export default class GameScene extends Phaser.Scene {
       onComplete: () => bag.disableInteractive(),
     });
 
+    // 影子同步消失并销毁
+    if (bag.shadow) {
+      this.tweens.add({
+        targets: bag.shadow,
+        scale: 0,
+        alpha: 0,
+        duration: 250,
+        ease: 'Back.easeIn',
+        onComplete: () => bag.shadow.destroy(),
+      });
+    }
+
     // 弹出数字
     this.showMoneyPopup(bag.x, bag.y - 10);
 
@@ -579,7 +706,6 @@ export default class GameScene extends Phaser.Scene {
   triggerAlarm() {
     // ── 警铃大作！──
     this.cameras.main.shake(500, 0.012);
-    this.cameras.main.flash(300, 255, 0, 0, false, null, this);
 
     // 红色闪烁叠加层
     this.alarmOverlay = this.add.graphics().setDepth(85);
@@ -600,9 +726,16 @@ export default class GameScene extends Phaser.Scene {
     // 猪队友尖叫
     this.showBubble(this.partner, PARTNER_LINES.alarm, 2500);
 
-    // 1.5秒后劫匪说核心玩法台词
+    // 1.5秒后劫匪说核心玩法台词（显示更长时间确保可见）
     this.time.delayedCall(1800, () => {
-      this.showBubble(this.robber, ROBBER_LINES.gogogo, 3500);
+      this.gogogoActive = true; // 保护gogogo气泡不被后续台词覆盖
+      this.showBubble(this.robber, ROBBER_LINES.gogogo, 9000);
+      this.sound.play('voiceLine3', { volume: 1 });
+
+      // gogogo显示结束后解除保护
+      this.time.delayedCall(9000, () => {
+        this.gogogoActive = false;
+      });
     });
 
     // 2.5秒后显示 HUD & 开始计时
@@ -661,6 +794,9 @@ export default class GameScene extends Phaser.Scene {
 
   // 按捡袋数触发劫匪台词（不泄露时间）
   checkRobberQuip() {
+    // gogogo台词显示期间不被后续搞笑台词覆盖
+    if (this.gogogoActive) return;
+
     for (const quip of ROBBER_QUIPS) {
       if (this.bagsCollected === quip.bags) {
         this.showBubble(this.robber, quip.text, 2000);
@@ -684,33 +820,79 @@ export default class GameScene extends Phaser.Scene {
     this.gameEnded = true;
     this.cleanupSounds();
     this.robberBobTween.pause();
+ 
+    // 顺利离开时，将大厅覆盖大图从 gameBg4 切换为 gameBg5
+    if (this.bgOverlay && this.bgOverlay.active) {
+      this.bgOverlay.setTexture('gameBg5');
+    }
 
     // 上车动画
+    const currentScale = this.robber.scaleX;
     this.tweens.add({
       targets: this.robber,
       x: this.car.x,
       y: this.car.y,
-      scale: 0.5,
+      scaleX: currentScale * 0.5,
+      scaleY: currentScale * 0.5,
       alpha: 0.5,
       duration: 300,
       ease: 'Quad.easeIn',
     });
 
-    // 猪队友也上车
+    // 影子跟随并消失
+    if (this.robberShadow) {
+      this.tweens.add({
+        targets: this.robberShadow,
+        x: this.car.x,
+        y: this.car.y + ROBBER_DISPLAY_H / 2 + 2,
+        alpha: 0,
+        duration: 300,
+        ease: 'Quad.easeIn',
+      });
+    }
+
+    // 猪队友切换为侧面图朝向车辆方向，然后跑上车
+    if (this.partnerPaceTween) this.partnerPaceTween.stop();
+    this.partner.setTexture('robber_idle_left');
+    // 判断猪队友在车的哪一侧，决定是否镜像
+    if (this.partner.x < this.car.x) {
+      this.partner.setFlipX(true); // 在车左边，面朝右
+    } else {
+      this.partner.setFlipX(false); // 在车右边，面朝左
+    }
     this.tweens.add({
       targets: this.partner,
       x: this.car.x + 10,
       y: this.car.y,
-      scale: 0.5,
+      scale: 0.5 * PARTNER_SCALE,
       alpha: 0.5,
       duration: 400,
     });
+ 
+    // 猪队友影子同步移动并淡出消失
+    if (this.partnerShadow) {
+      this.tweens.add({
+        targets: this.partnerShadow,
+        x: this.car.x + 10,
+        y: this.car.y + 20,
+        scaleX: 0.5,
+        scaleY: 0.5,
+        alpha: 0,
+        duration: 400,
+      });
+    }
 
     // 车飙走
     this.time.delayedCall(500, () => {
       this.tweens.add({
         targets: this.car,
         y: GAME.HEIGHT + 100,
+        duration: 600,
+        ease: 'Quad.easeIn',
+      });
+      this.tweens.add({
+        targets: this.carShadow,
+        y: GAME.HEIGHT + 100 + 6,
         duration: 600,
         ease: 'Quad.easeIn',
       });
@@ -738,33 +920,80 @@ export default class GameScene extends Phaser.Scene {
     this.cleanupSounds();
     this.robberBobTween.pause();
     this.robber.angle = 0;
+ 
+    // 被警察抓住时，将大厅覆盖大图从 gameBg4 切换为 gameBg5
+    if (this.bgOverlay && this.bgOverlay.active) {
+      this.bgOverlay.setTexture('gameBg5');
+    }
 
     // 屏幕剧烈震动
     this.cameras.main.shake(600, 0.025);
 
-    // ── 警车从两侧冲入 ──
-    const car1 = this.add.image(-80, 720, 'policeCar').setDepth(50).setAngle(0);
-    const car2 = this.add.image(GAME.WIDTH + 80, 760, 'policeCar').setDepth(50).setAngle(0);
+    // ── 警车从下方冲入（与劫匪车保持一致大小） ──
+    const car1 = this.add.sprite(CAR.X - 150, GAME.HEIGHT + 80, 'police_car_0')
+      .setDepth(50)
+      .setDisplaySize(56, 92);
+    car1.play('police_car_flash');
 
-    // 左边警车冲入
+    const car1Shadow = this.add.graphics()
+      .setDepth(49);
+    const shadowLayers = 6;
+    for (let j = 0; j < shadowLayers; j++) {
+      const w = 56 + (j * 4);
+      const h = 92 + (j * 5);
+      const alpha = 0.12 - (j * 0.02);
+      car1Shadow.fillStyle(0x000000, alpha);
+      car1Shadow.fillEllipse(0, 0, w, h);
+    }
+    car1Shadow.x = car1.x + 3;
+    car1Shadow.y = car1.y + 6;
+
+    const car2 = this.add.sprite(CAR.X + 150, GAME.HEIGHT + 120, 'police_car_0')
+      .setDepth(50)
+      .setDisplaySize(56, 92);
+    car2.play('police_car_flash');
+
+    const car2Shadow = this.add.graphics()
+      .setDepth(49);
+    for (let j = 0; j < shadowLayers; j++) {
+      const w = 56 + (j * 4);
+      const h = 92 + (j * 5);
+      const alpha = 0.12 - (j * 0.02);
+      car2Shadow.fillStyle(0x000000, alpha);
+      car2Shadow.fillEllipse(0, 0, w, h);
+    }
+    car2Shadow.x = car2.x + 3;
+    car2Shadow.y = car2.y + 6;
+
+    // 第一辆警车从下方冲入
     this.tweens.add({
       targets: car1,
-      x: 100,
-      y: 700,
+      y: CAR.Y,
+      duration: 500,
+      ease: 'Quad.easeOut',
+    });
+    this.tweens.add({
+      targets: car1Shadow,
+      y: CAR.Y + 6,
       duration: 500,
       ease: 'Quad.easeOut',
     });
 
-    // 右边警车冲入
+    // 第二辆警车从下方冲入（稍晚）
     this.tweens.add({
       targets: car2,
-      x: GAME.WIDTH - 100,
-      y: 700,
+      y: CAR.Y,
+      duration: 600,
+      ease: 'Quad.easeOut',
+    });
+    this.tweens.add({
+      targets: car2Shadow,
+      y: CAR.Y + 6,
       duration: 600,
       ease: 'Quad.easeOut',
     });
 
-    // 警车红蓝闪灯
+    // 警车红蓝闪灯叠加层
     let flashCount = 0;
     const policeFlash = this.add.graphics().setDepth(200);
     this.time.addEvent({
@@ -776,20 +1005,19 @@ export default class GameScene extends Phaser.Scene {
         policeFlash.fillStyle(color, 0.12);
         policeFlash.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
         flashCount++;
-
-        // 警车自身闪灯（缩放脉冲）
-        if (car1.active) car1.setScale(flashCount % 2 === 0 ? 1.05 : 1);
-        if (car2.active) car2.setScale(flashCount % 2 === 0 ? 1 : 1.05);
       },
     });
 
-    // 劫匪举手投降
+    // 劫匪举手投降 — 切换为正面静止图
+    this.setRobberIdle('down');
     this.time.delayedCall(400, () => {
-      // 手举起来的视觉：略微放大 + 变白（被灯照到）
+      // 手举起来的视觉：略微拉伸
+      const currentScaleX = this.robber.scaleX;
+      const currentScaleY = this.robber.scaleY;
       this.tweens.add({
         targets: this.robber,
-        scaleX: 1.4,
-        scaleY: 0.9,
+        scaleX: currentScaleX * 1.4,
+        scaleY: currentScaleY * 0.9,
         duration: 300,
       });
     });
@@ -988,9 +1216,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   playCollectSound() {
-    const base = 520 + this.bagsCollected * 60;
-    this.playTone(base, 0.12, 'square', 0.12);
-    setTimeout(() => this.playTone(base * 1.5, 0.08, 'square', 0.08), 80);
+    // 播放高品质金币拾取音效
+    this.sound.play('collectSound', { volume: 0.85 });
   }
 
   playAlarmSound() {
@@ -1023,15 +1250,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   playSuccessSound() {
-    [523, 659, 784, 1047].forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 0.2, 'square', 0.12), i * 120);
-    });
+    // 播放高品质逃脱成功音效
+    this.sound.play('successSound', { volume: 0.95 });
   }
-
+ 
   playFailSound() {
-    [400, 350, 300, 200].forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 0.3, 'sawtooth', 0.1), i * 180);
-    });
+    // 播放高品质被捕/失去金钱失败音效
+    this.sound.play('failSound', { volume: 0.57 });
   }
 
   playSirenSound() {
@@ -1069,6 +1294,10 @@ export default class GameScene extends Phaser.Scene {
     }
     if (this.alarmOverlay) {
       this.alarmOverlay.clear();
+    }
+    if (this.robberyMusic) {
+      this.robberyMusic.stop();
+      this.robberyMusic = null;
     }
   }
 

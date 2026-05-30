@@ -296,7 +296,7 @@ export default class GameScene extends Phaser.Scene {
         .setDepth(8)
         .setInteractive({ useHandCursor: true });
 
-      const targetW = pos.mult === 25 ? 135 : 90;
+      const targetW = pos.mult === 25 ? 135 : 63;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);
 
@@ -315,7 +315,7 @@ export default class GameScene extends Phaser.Scene {
 
       const multiplierText = `x${pos.mult}`;
 
-      const label = this.add.text(pos.x, pos.y - targetH * 0.5 - 10, multiplierText, {
+      const label = this.add.text(pos.x, pos.y - targetH * 0.5 + 15, multiplierText, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '20px',
         color: '#ffffff',
@@ -325,7 +325,7 @@ export default class GameScene extends Phaser.Scene {
 
       this.tweens.add({
         targets: label,
-        y: pos.y - targetH * 0.5 - 20,
+        y: pos.y - targetH * 0.5 + 5,
         duration: 800,
         yoyo: true,
         repeat: -1,

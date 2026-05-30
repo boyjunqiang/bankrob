@@ -1117,9 +1117,9 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     let pressCount = 0;
-    const requiredPresses = 5;
+    const requiredPresses = 20;
     
-    const progressText = this.add.text(cx, cy - 100, '0 / 5', {
+    const progressText = this.add.text(cx, cy - 100, `0 / ${requiredPresses}`, {
       fontFamily: '"Press Start 2P", monospace', fontSize: '24px', color: '#00ff00'
     }).setOrigin(0.5);
 

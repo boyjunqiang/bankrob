@@ -26,8 +26,8 @@ export const ROBBER = {
 };
 
 export const BAGS = {
-  MIN_COUNT: 120,
-  MAX_COUNT: 150,
+  MIN_COUNT: 12,
+  MAX_COUNT: 12,
   MIN_DISTANCE: 22,          // 钱袋间最小距离（铺满整个地面）
   AREA: {
     minX: 65, maxX: 385,

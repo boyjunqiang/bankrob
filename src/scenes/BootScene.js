@@ -15,7 +15,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('homeTitle', 'assets/首页标题.png');
 
     // 加载外部新资源
-    this.load.image('gameBg', 'assets/游戏主画面.png');
+    this.load.image('gameBg', 'assets/游戏主画面.webp');
     this.load.image('moneybag', 'assets/钱袋.png');
     this.load.image('car', 'assets/汽车.png');
     this.load.image('gameBg2', 'assets/游戏主画面2.png');
@@ -29,7 +29,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.audio('successSound', 'assets/胜利.mp3');
 
     // 成功结算页优化新资源
-    this.load.image('victoryBg', 'assets/胜利背景.png');
+    this.load.image('victoryBg', 'assets/胜利背景.webp');
     this.load.image('successHeader', 'assets/成功逃脱.png');
     this.load.image('successHighScoreHeader', 'assets/成功逃脱新高分.png');
     this.load.image('popupMoney', 'assets/弹出框钱.png');
@@ -42,7 +42,7 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('fallingBill', 'assets/飘落钞票.png');
 
     // 失败结算页资源
-    this.load.image('failBg', 'assets/失败背景.png');
+    this.load.image('failBg', 'assets/失败背景.webp');
     this.load.image('failHeader', 'assets/失败标题.png');
 
     // 预加载劫匪台词语音

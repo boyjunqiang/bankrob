@@ -158,18 +158,6 @@
       const currentUrl = window.location.href;
       qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(currentUrl)}&color=0a0a1a&bgcolor=ffffff`;
     }
-
-    // 全局强制全屏 (任何点击都尝试全屏，应对某些移动端浏览器限制)
-    const tryFullscreen = () => {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile && !document.fullscreenElement && !document.webkitFullscreenElement) {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) elem.requestFullscreen().catch(() => {});
-        else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-      }
-    };
-    document.body.addEventListener('click', tryFullscreen);
-    document.body.addEventListener('touchstart', tryFullscreen, { passive: true });
   </script>
 </body>
 </html>

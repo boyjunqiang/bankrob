@@ -73,21 +73,6 @@ export default class MenuScene extends Phaser.Scene {
         video.video.muted = false;
         video.video.volume = 1;
       }
-      
-      // 强制全屏（如果识别为手机）
-      const isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS || this.sys.game.device.os.iPhone || this.sys.game.device.os.iPad;
-      if (isMobile) {
-        if (!this.scale.isFullscreen) {
-          this.scale.startFullscreen();
-        }
-        // 兜底：直接调用原生 DOM 的全屏 API
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen().catch(() => {});
-        } else if (elem.webkitRequestFullscreen) {
-          elem.webkitRequestFullscreen();
-        }
-      }
     });
 
     // ── 游戏标题 (带阴影) ──
@@ -191,18 +176,6 @@ export default class MenuScene extends Phaser.Scene {
       }
       if (!this.menuSiren.isPlaying) {
         this.menuSiren.play();
-      }
-
-      if (this.sys.game.device.os.android || this.sys.game.device.os.iOS || this.sys.game.device.os.iPhone) {
-        if (!this.scale.isFullscreen) {
-          this.scale.startFullscreen();
-        }
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen().catch(() => {});
-        } else if (elem.webkitRequestFullscreen) {
-          elem.webkitRequestFullscreen();
-        }
       }
       
       // 按下反馈

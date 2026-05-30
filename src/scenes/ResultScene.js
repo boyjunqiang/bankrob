@@ -432,7 +432,7 @@ export default class ResultScene extends Phaser.Scene {
   //  Retry & Share Buttons (shared by success & fail)
   // ==================================================================
   showRetryAndShareButtons(cx, rY, sY) {
-    const retryScale = 220 / 300;
+    const retryScale = (220 / 300) * 0.7;
     const shareScale = 160 / 238;
 
     const retryBtn = this.add.image(cx, rY, 'btnRetry')
@@ -527,7 +527,7 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   showRetryButton(cx, ypos) {
-    const retryScale = 200 / 300;
+    const retryScale = (200 / 300) * 0.7;
 
     const retryBtn = this.add.image(cx, ypos, 'btnRetry')
       .setScale(retryScale)

@@ -1,0 +1,51 @@
+name: 🚀 部署游戏到 GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # 当 push 到 main 分支时自动触发构建与部署
+
+# 设置 GITHUB_TOKEN 权限以允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 保证同一时间只有一个部署任务运行
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📂 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 🟢 初始化 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 📦 安装项目依赖
+        run: npm ci
+
+      - name: 🏗 编译打包项目 (Vite Build)
+        run: npm run build
+
+      - name: ⚙️ 配置 GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: 📤 上传打包产物 (dist 目录)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: 🚀 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -241,17 +241,9 @@ export default class GameScene extends Phaser.Scene {
 
       let labelText = '';
       if (pos.multiplier) {
-        if (pos.multiplier >= 3) {
-          bag.setTint(0xffcc00); // 金色
-        } else if (pos.multiplier >= 2.5) {
-          bag.setTint(0x44ff44); // 绿色
-        } else if (pos.multiplier >= 2) {
-          // 普通颜色 (无 tint)
-        }
         bag.multiplier = pos.multiplier;
         labelText = `x${pos.multiplier}`;
       } else if (pos.amount) {
-        bag.setTint(0x888888); // 灰色
         bag.amount = pos.amount;
         labelText = `+$${pos.amount}`;
       }
@@ -265,7 +257,6 @@ export default class GameScene extends Phaser.Scene {
         strokeThickness: 3
       }).setOrigin(0.5).setDepth(9).setAlpha(0).setScale(0); // 初始隐藏
 
-      bag.shadow = shadow;
       bag.label = label;
       bag.collected = false;
       bag.on('pointerdown', () => this.onBagClicked(bag));

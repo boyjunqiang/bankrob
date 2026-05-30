@@ -286,12 +286,6 @@ export default class GameScene extends Phaser.Scene {
     ];
 
     positions.forEach((pos) => {
-      const shadow = this.add.graphics().setDepth(7);
-      shadow.fillStyle(0x000000, 0.5);
-      shadow.fillEllipse(0, 0, 45, 15);
-      shadow.x = pos.x;
-      shadow.y = pos.y + 25; // 往下移增加立体感
-
       let textureKey = 'safe_bg';
       if (pos.mult === 5) textureKey = 'safe_5';
       else if (pos.mult === 10) textureKey = 'safe_10';
@@ -300,8 +294,19 @@ export default class GameScene extends Phaser.Scene {
 
       const safe = this.add.image(pos.x, pos.y, textureKey)
         .setDepth(8)
-        .setScale(0.08)
         .setInteractive({ useHandCursor: true });
+
+      const targetW = 90;
+      const safeScale = targetW / safe.width;
+      safe.setScale(safeScale);
+
+      const targetH = safe.height * safeScale;
+
+      const shadow = this.add.graphics().setDepth(7);
+      shadow.fillStyle(0x000000, 0.5);
+      shadow.fillEllipse(0, 0, targetW * 0.8, targetW * 0.3);
+      shadow.x = pos.x;
+      shadow.y = pos.y + targetH * 0.4; // 往下移增加立体感
 
       safe.multiplier = pos.mult;
       safe.shadow = shadow;
@@ -310,9 +315,9 @@ export default class GameScene extends Phaser.Scene {
 
       const multiplierText = `x${pos.mult}`;
 
-      const label = this.add.text(pos.x, pos.y - 45, multiplierText, {
+      const label = this.add.text(pos.x, pos.y - targetH * 0.5 - 10, multiplierText, {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: '18px',
+        fontSize: '20px',
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4
@@ -320,7 +325,7 @@ export default class GameScene extends Phaser.Scene {
 
       this.tweens.add({
         targets: label,
-        y: pos.y - 55,
+        y: pos.y - targetH * 0.5 - 20,
         duration: 800,
         yoyo: true,
         repeat: -1,

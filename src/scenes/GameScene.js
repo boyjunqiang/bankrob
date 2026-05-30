@@ -269,8 +269,8 @@ export default class GameScene extends Phaser.Scene {
     const positions = [
       { x: 75, y: 190, mult: 5 },  // Top Left
       { x: 375, y: 190, mult: 15 }, // Top Right
-      { x: 75, y: 570, mult: 20 },  // Bottom Left
-      { x: 375, y: 570, mult: 25 }, // Bottom Right
+      { x: 75, y: 570, mult: 25 },  // Bottom Left (25x)
+      { x: 375, y: 570, mult: 20 }, // Bottom Right (20x)
       { x: 225, y: 380, mult: 10 }, // Center
     ];
 
@@ -280,12 +280,15 @@ export default class GameScene extends Phaser.Scene {
       else if (pos.mult === 10) textureKey = 'safe_10';
       else if (pos.mult === 15) textureKey = 'safe_15';
       else if (pos.mult === 20) textureKey = 'safe_diamond';
+      else if (pos.mult === 25) textureKey = 'safe_bg';
 
       const safe = this.add.image(pos.x, pos.y, textureKey)
         .setDepth(8)
         .setInteractive({ useHandCursor: true });
 
-      const targetW = pos.mult === 25 ? 95 : 44;
+      let targetW = 44;
+      if (pos.mult === 20) targetW = 114;
+      else if (pos.mult === 25) targetW = 53;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);
 
@@ -654,7 +657,7 @@ export default class GameScene extends Phaser.Scene {
   //  玩家交互
   // ==================================================================
   onSafeClicked(safe) {
-    if (this.introPlaying || this.gameEnded || safe.collected || this.isCracking) return;
+    if (this.introPlaying || this.gameEnded || safe.opened || this.isCracking) return;
     
     // 初始化音频
     if (!this.audioCtx) {
@@ -897,8 +900,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onReachedSafe(safe) {
-    if (safe.collected || this.isCracking) return;
-    this.isCracking = true;
+    if (safe.opened || this.isCracking) return;
     this.currentSafe = safe;
     
     if (safe.multiplier === 20) {
@@ -956,7 +958,7 @@ export default class GameScene extends Phaser.Scene {
       if (this.safeInput.length > 0) {
         this.safeInput = this.safeInput.slice(0, -1);
         let displayStr = this.safeInput;
-        while (displayStr.length < 3) displayStr += '_';
+        while (displayStr.length < maxLength) displayStr += '_';
         this.safeInputDisplay.setText(displayStr);
       }
     });
@@ -1012,13 +1014,14 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onSafeNumpadClick(num) {
-    if (this.safeInput.length < 3) {
+    const maxLength = this.currentSafe.multiplier === 25 ? 5 : 3;
+    if (this.safeInput.length < maxLength) {
       this.safeInput += num.toString();
       let displayStr = this.safeInput;
-      while (displayStr.length < 3) displayStr += '_';
+      while (displayStr.length < maxLength) displayStr += '_';
       this.safeInputDisplay.setText(displayStr);
 
-      if (this.safeInput.length === 3) {
+      if (this.safeInput.length === maxLength) {
         this.time.delayedCall(200, () => this.checkSafePassword());
       }
     }
@@ -1029,7 +1032,8 @@ export default class GameScene extends Phaser.Scene {
       this.closeSafeCrackingUI(true);
     } else {
       this.cameras.main.shake(200, 0.01);
-      this.safeInputDisplay.setText('___');
+      const maxLength = this.currentSafe.multiplier === 25 ? 5 : 3;
+      this.safeInputDisplay.setText('_'.repeat(maxLength));
       this.safeInputDisplay.setColor('#ff0000');
       this.time.delayedCall(300, () => {
         this.safeInput = '';

@@ -269,9 +269,9 @@ export default class GameScene extends Phaser.Scene {
     const positions = [
       { x: 75, y: 190, mult: 5 },  // Top Left
       { x: 375, y: 190, mult: 15 }, // Top Right
-      { x: 75, y: 570, mult: 25 },  // Bottom Left (25x)
-      { x: 375, y: 570, mult: 20 }, // Bottom Right (20x)
-      { x: 225, y: 380, mult: 10 }, // Center
+      { x: 75, y: 350, mult: 10 }, // Bottom Left
+      { x: 375, y: 350, mult: 25 }, // Bottom Right (Password 5-digits)
+      { x: GAME.WIDTH / 2, y: GAME.HEIGHT / 2 - 50, mult: 20 } // Center (Rotating)
     ];
 
     positions.forEach((pos) => {

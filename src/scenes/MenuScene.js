@@ -206,7 +206,7 @@ export default class MenuScene extends Phaser.Scene {
     const highScore = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
     if (highScore > 0) {
       this.add.text(cx, 640, `🏆 最高记录: ${this.formatMoney(highScore)}`, {
-        fontFamily: '"Press Start 2P", monospace',
+        fontFamily: '"Zpix", "Press Start 2P", monospace',
         fontSize: '12px',
         color: '#ffd700',
         stroke: '#000',

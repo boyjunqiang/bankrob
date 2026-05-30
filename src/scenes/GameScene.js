@@ -250,7 +250,7 @@ export default class GameScene extends Phaser.Scene {
 
       // 添加印在钱袋上的文字 (小号，直接贴在袋子上)
       const label = this.add.text(pos.x, pos.y + 12, labelText, {
-        fontFamily: '"Press Start 2P", monospace',
+        fontFamily: '"Zpix", "Press Start 2P", monospace',
         fontSize: '10px',
         color: '#ffffff',
         stroke: '#000000',
@@ -309,7 +309,7 @@ export default class GameScene extends Phaser.Scene {
       const multiplierText = `x${pos.mult}`;
 
       const label = this.add.text(pos.x, pos.y - targetH * 0.5 + 15, multiplierText, {
-        fontFamily: '"Press Start 2P", monospace',
+        fontFamily: '"Zpix", "Press Start 2P", monospace',
         fontSize: '20px',
         color: '#ffffff',
         stroke: '#000000',
@@ -384,7 +384,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 金额（靠上居中）
     this.moneyText = this.add.text(GAME.WIDTH / 2, 14, '💰 $0', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '16px',
       color: '#ffd700',
       stroke: '#000',
@@ -393,7 +393,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 倒计时（靠下居中）
     this.timerText = this.add.text(GAME.WIDTH / 2, 40, '⏱️ 60.0s', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '16px',
       color: '#ff4444',
       stroke: '#000',
@@ -402,7 +402,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 翻倍弹出数字（复用）
     this.popupText = this.add.text(0, 0, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '22px',
       color: '#ffee44',
       stroke: '#000',
@@ -451,7 +451,7 @@ export default class GameScene extends Phaser.Scene {
 
   createPromptText() {
     this.promptText = this.add.text(GAME.WIDTH / 2, GAME.HEIGHT / 2 + 60, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '12px',
       color: '#ffdd44',
       stroke: '#000',
@@ -941,7 +941,7 @@ export default class GameScene extends Phaser.Scene {
     this.safeUIContainer.add(overlay);
 
     const titleText = this.add.text(cx, 100, '🔒 破解保险箱', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
     }).setOrigin(0.5);
     
     let morseHintStr = '';
@@ -958,12 +958,12 @@ export default class GameScene extends Phaser.Scene {
     
     const underscores = '_'.repeat(maxLength);
     this.safeInputDisplay = this.add.text(cx, 280, underscores, {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
     }).setOrigin(0.5);
     
     const delBtnX = cx + (maxLength === 5 ? 130 : 90);
     const delBtn = this.add.text(delBtnX, 280, '[删]', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     
     delBtn.on('pointerdown', () => {
@@ -994,7 +994,7 @@ export default class GameScene extends Phaser.Scene {
       btnBg.strokeRoundedRect(btnX - 25, btnY - 25, 50, 50, 8);
 
       const btnText = this.add.text(btnX, btnY, i.toString(), {
-        fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffffff'
+        fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '20px', color: '#ffffff'
       }).setOrigin(0.5);
 
       const hitArea = this.add.rectangle(btnX, btnY, 50, 50, 0x000000, 0).setInteractive({ useHandCursor: true });
@@ -1018,7 +1018,7 @@ export default class GameScene extends Phaser.Scene {
     });
     
     const closeBtn = this.add.text(cx, 720, '[ 放弃破解 ]', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     closeBtn.on('pointerdown', () => this.closeSafeCrackingUI(false));
     
@@ -1121,15 +1121,15 @@ export default class GameScene extends Phaser.Scene {
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
     
     const titleText = this.add.text(cx, 160, '👆 指纹识别 (35x)', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffd700'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#ffd700'
     }).setOrigin(0.5);
     
     const hintText = this.add.text(cx, 230, '长按下方指纹印\n在心里默数 3 秒\n(必须在2.8秒~3.2秒内松开)', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '12px', color: '#aaaaaa', align: 'center', lineSpacing: 10
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '12px', color: '#aaaaaa', align: 'center', lineSpacing: 10
     }).setOrigin(0.5);
 
     const statusText = this.add.text(cx, cy - 80, '等待录入...', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '16px', color: '#ffffff'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '16px', color: '#ffffff'
     }).setOrigin(0.5);
 
     const btnGraphic = this.add.graphics();
@@ -1227,7 +1227,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     const closeBtn = this.add.text(cx, 720, '[ 放弃破解 ]', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     closeBtn.on('pointerdown', () => {
       if (failTimer) failTimer.remove();
@@ -1250,14 +1250,14 @@ export default class GameScene extends Phaser.Scene {
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
     
     const titleText = this.add.text(cx, 200, '🖱️ 疯狂点击按钮', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
     }).setOrigin(0.5);
     
     let pressCount = 0;
     const requiredPresses = 20;
     
     const progressText = this.add.text(cx, cy - 100, `0 / ${requiredPresses}`, {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '24px', color: '#00ff00'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '24px', color: '#00ff00'
     }).setOrigin(0.5);
 
     const btnImg = this.add.image(cx, cy + 50, 'btn_normal').setInteractive({ useHandCursor: true });
@@ -1285,7 +1285,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     const closeBtn = this.add.text(cx, 720, '[ 放弃破解 ]', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     closeBtn.on('pointerdown', () => this.closeSafeCrackingUI(false));
 
@@ -1305,11 +1305,11 @@ export default class GameScene extends Phaser.Scene {
     this.safeUIContainer.add(overlay);
 
     const titleText = this.add.text(cx, 100, '💎 暴力破解钻石保险箱', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#00ffff'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#00ffff'
     }).setOrigin(0.5);
 
     const hintText = this.add.text(cx, 150, '按住轮盘旋转10圈 (3600度)！', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ffffff'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '14px', color: '#ffffff'
     }).setOrigin(0.5);
 
     const dialContainer = this.add.container(cx, cy);
@@ -1327,11 +1327,11 @@ export default class GameScene extends Phaser.Scene {
     dialContainer.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
     
     const progressText = this.add.text(cx, cy + 150, '0 / 3600°', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#00ff00'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '20px', color: '#00ff00'
     }).setOrigin(0.5);
 
     const closeBtn = this.add.text(cx, GAME.HEIGHT - 80, '[ 放弃 ]', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     closeBtn.on('pointerdown', () => this.closeSafeCrackingUI(false));
 
@@ -1774,7 +1774,7 @@ export default class GameScene extends Phaser.Scene {
     if (!customText) return;
 
     const txt = this.add.text(x, y, customText, {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '24px',
       color: '#00ff00',
       stroke: '#000000',

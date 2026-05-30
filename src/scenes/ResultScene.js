@@ -200,7 +200,7 @@ export default class ResultScene extends Phaser.Scene {
 
   animateMoneyCount(cx, data, centerY, subY) {
     const moneyText = this.add.text(cx, centerY, '$0', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '36px',
       color: '#ffd700',
       stroke: '#000',
@@ -221,7 +221,7 @@ export default class ResultScene extends Phaser.Scene {
       .setFlipX(true);
 
     const subText = this.add.text(cx, subY, '', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '12px',
       color: '#ff6644',
       stroke: '#000',
@@ -373,7 +373,7 @@ export default class ResultScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const policeText = this.add.text(cx - 85, row1Y, `警察到达：仅剩 ${marginSec} 秒！`, {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '11px',
       color: marginSec <= 3 ? '#ff3333' : '#aaccff',
       stroke: '#000',
@@ -392,7 +392,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // Emoji and rating text on the SAME line, emoji to the left
     const ratingText = this.add.text(cx - 55, row2Y + 20, `${vehicleEmoji} ${ratingTextStr}`, {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '11px',
       color: ratingColor,
       stroke: '#000',
@@ -402,7 +402,7 @@ export default class ResultScene extends Phaser.Scene {
     // 3. Bags & Time row
     const elapsed = Math.round(data.timeUsed * 10) / 10;
     const bagsText = this.add.text(cx, row3Y, `🎒 捡了 ${data.bags} 袋  ⏱️ 用时 ${elapsed}秒`, {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '10px',
       color: '#ffffff',
       stroke: '#000',
@@ -444,7 +444,7 @@ export default class ResultScene extends Phaser.Scene {
       .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
 
     const boardBtn = this.add.text(cx, sY + 60, '🏆 查看全球排行榜', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '14px',
       color: '#ffd700',
       backgroundColor: '#333333',
@@ -504,7 +504,7 @@ export default class ResultScene extends Phaser.Scene {
           const shareText = `🏦 一分钟劫匪 🏦\n💰 抢到 ${this.formatMoney(this.result.money)}\n🎒 捡了 ${this.result.bags} 袋\n🚔 警察差 ${margin}秒 才到\n你能比我多抢吗？`;
           navigator.clipboard?.writeText(shareText).then(() => {
             const copiedText = this.add.text(cx, sY + 40, '✅ 战绩已复制到剪贴板！', {
-              fontFamily: '"Press Start 2P", monospace',
+              fontFamily: '"Zpix", "Press Start 2P", monospace',
               fontSize: '9px',
               color: '#66ff66',
               stroke: '#000',
@@ -513,7 +513,7 @@ export default class ResultScene extends Phaser.Scene {
             this.time.delayedCall(1500, () => copiedText.destroy());
           }).catch(() => {
             const copiedText = this.add.text(cx, sY + 40, '❌ 复制失败，请重试', {
-              fontFamily: '"Press Start 2P", monospace',
+              fontFamily: '"Zpix", "Press Start 2P", monospace',
               fontSize: '9px',
               color: '#ff4444',
               stroke: '#000',
@@ -534,7 +534,7 @@ export default class ResultScene extends Phaser.Scene {
       .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
     
     const boardBtn = this.add.text(cx, ypos + 70, '🏆 查看全球排行榜', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '14px',
       color: '#ffd700',
       backgroundColor: '#333333',
@@ -581,7 +581,7 @@ export default class ResultScene extends Phaser.Scene {
 
       const cx = GAME.WIDTH / 2;
       const hs = this.add.text(cx, 260, '🏆 NEW HIGH SCORE!', {
-        fontFamily: '"Press Start 2P", monospace',
+        fontFamily: '"Zpix", "Press Start 2P", monospace',
         fontSize: '13px',
         color: '#ffee44',
         stroke: '#000',
@@ -703,7 +703,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // 1. ¥0 — big grey text showing zero earnings
     const zeroText = this.add.text(cx, moneyY, '$0', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '48px',
       color: '#888899',
       stroke: '#000',
@@ -713,7 +713,7 @@ export default class ResultScene extends Phaser.Scene {
     // 2. "如果你少抢1袋钱…" hint
     const moneyIfOneLess = data.moneyIfOneLess || 0;
     const hintText1 = this.add.text(cx, hintY, '如果你少抢 1 袋钱…', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '11px',
       color: '#aaaacc',
       stroke: '#000',
@@ -721,7 +721,7 @@ export default class ResultScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
 
     const hintText2 = this.add.text(cx, hintY2, '你本可以带走', {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '11px',
       color: '#aaaacc',
       stroke: '#000',
@@ -730,7 +730,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // 3. Could-have money — golden big text
     const couldHaveText = this.add.text(cx, couldHaveY, this.formatMoney(moneyIfOneLess), {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '32px',
       color: '#ffd700',
       stroke: '#000',
@@ -749,7 +749,7 @@ export default class ResultScene extends Phaser.Scene {
     const totalBeforeCaught = data.totalMoneyBeforeCaught || 0;
     const summaryStr = `💰 抢了 ${data.bags} 袋 · 罚没 ${this.formatMoney(totalBeforeCaught)}`;
     const summaryText = this.add.text(cx, summaryY, summaryStr, {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '10px',
       color: '#ffffff',
       stroke: '#000',
@@ -839,7 +839,7 @@ export default class ResultScene extends Phaser.Scene {
     .then(data => {
       if (data.success && data.rank) {
         const rankTxt = this.add.text(cx, 160, `👑 全球排名: 第 ${data.rank} 名 👑`, {
-          fontFamily: '"Press Start 2P", monospace',
+          fontFamily: '"Zpix", "Press Start 2P", monospace',
           fontSize: '16px',
           color: '#00ff00',
           stroke: '#000',
@@ -868,15 +868,15 @@ export default class ResultScene extends Phaser.Scene {
     bg.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
 
     const title = this.add.text(cx, 100, '🏆 全球悍匪排行榜 🏆', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
     }).setOrigin(0.5).setDepth(101);
 
     const closeBtn = this.add.text(cx, GAME.HEIGHT - 80, '[ 关闭面板 ]', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ff4444'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#ff4444'
     }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
 
     const loadingText = this.add.text(cx, 200, '正在潜入数据库...', {
-      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#aaaaaa'
+      fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '14px', color: '#aaaaaa'
     }).setOrigin(0.5).setDepth(101);
 
     const container = this.add.container(0, 0, [bg, title, closeBtn, loadingText]);

@@ -296,7 +296,7 @@ export default class GameScene extends Phaser.Scene {
         .setDepth(8)
         .setInteractive({ useHandCursor: true });
 
-      const targetW = 90;
+      const targetW = pos.mult === 25 ? 135 : 90;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);
 

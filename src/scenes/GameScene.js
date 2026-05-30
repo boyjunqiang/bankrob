@@ -779,14 +779,8 @@ export default class GameScene extends Phaser.Scene {
     const elapsed = (time - this.timerStartTime) / 1000;
     const displayTime = TIMER.DISPLAY_SECONDS - elapsed;
 
-    // 显示倒计时
-    let sign = '';
-    let val = displayTime;
-    if (val < 0) {
-      sign = '-';
-      val = Math.abs(val);
-    }
-    this.timerText.setText(`⏱️ ${sign}${val.toFixed(1)}s`);
+    // 显示正计时
+    this.timerText.setText(`⏱️ ${elapsed.toFixed(1)}s`);
     
     if (displayTime <= 10) {
       this.timerText.setColor('#ff0000');
@@ -1084,6 +1078,15 @@ export default class GameScene extends Phaser.Scene {
   }
 
   formatMoney(n) {
+    if (n >= 1e48) return `$${(n / 1e48).toFixed(1)}极`;
+    if (n >= 1e44) return `$${(n / 1e44).toFixed(1)}载`;
+    if (n >= 1e40) return `$${(n / 1e40).toFixed(1)}正`;
+    if (n >= 1e36) return `$${(n / 1e36).toFixed(1)}涧`;
+    if (n >= 1e32) return `$${(n / 1e32).toFixed(1)}沟`;
+    if (n >= 1e28) return `$${(n / 1e28).toFixed(1)}穰`;
+    if (n >= 1e24) return `$${(n / 1e24).toFixed(1)}秭`;
+    if (n >= 1e20) return `$${(n / 1e20).toFixed(1)}垓`;
+    if (n >= 1e16) return `$${(n / 1e16).toFixed(1)}京`;
     if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}万亿`;
     if (n >= 1e8)  return `$${(n / 1e8).toFixed(1)}亿`;
     if (n >= 1e4)  return `$${(n / 1e4).toFixed(1)}万`;
@@ -1091,7 +1094,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   showMoneyPopup(x, y) {
-    const txt = this.add.text(x, y, `$${this.totalMoney.toLocaleString()}`, {
+    const txt = this.add.text(x, y, this.formatMoney(this.totalMoney), {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '18px',
       color: '#ffee44',

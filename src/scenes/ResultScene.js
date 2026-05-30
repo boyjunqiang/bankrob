@@ -162,6 +162,22 @@ export default class ResultScene extends Phaser.Scene {
     });
   }
 
+  formatMoney(n) {
+    if (n >= 1e48) return `$${(n / 1e48).toFixed(1)}极`;
+    if (n >= 1e44) return `$${(n / 1e44).toFixed(1)}载`;
+    if (n >= 1e40) return `$${(n / 1e40).toFixed(1)}正`;
+    if (n >= 1e36) return `$${(n / 1e36).toFixed(1)}涧`;
+    if (n >= 1e32) return `$${(n / 1e32).toFixed(1)}沟`;
+    if (n >= 1e28) return `$${(n / 1e28).toFixed(1)}穰`;
+    if (n >= 1e24) return `$${(n / 1e24).toFixed(1)}秭`;
+    if (n >= 1e20) return `$${(n / 1e20).toFixed(1)}垓`;
+    if (n >= 1e16) return `$${(n / 1e16).toFixed(1)}京`;
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}万亿`;
+    if (n >= 1e8)  return `$${(n / 1e8).toFixed(1)}亿`;
+    if (n >= 1e4)  return `$${(n / 1e4).toFixed(1)}万`;
+    return `$${n.toLocaleString()}`;
+  }
+
   checkIsHighScore(money) {
     const prev = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
     return money > prev;
@@ -205,7 +221,7 @@ export default class ResultScene extends Phaser.Scene {
       const delay = Math.max(40, 150 - i * 3);
 
       this.time.delayedCall(i * delay, () => {
-        moneyText.setText(`$${displayAmount.toLocaleString()}`);
+        moneyText.setText(this.formatMoney(displayAmount));
         moneyText.setScale(1);
         const targetScale = moneyText.width > maxW ? maxW / moneyText.width : 1;
         moneyText.setScale(targetScale);
@@ -470,7 +486,7 @@ export default class ResultScene extends Phaser.Scene {
         yoyo: true,
         onComplete: () => {
           const margin = Math.round(this.result.margin * 10) / 10;
-          const shareText = `🏦 一分钟劫匪 🏦\n💰 抢到 $${this.result.money.toLocaleString()}\n🎒 捡了 ${this.result.bags} 袋\n🚔 警察差 ${margin}秒 才到\n你能比我多抢吗？`;
+          const shareText = `🏦 一分钟劫匪 🏦\n💰 抢到 ${this.formatMoney(this.result.money)}\n🎒 捡了 ${this.result.bags} 袋\n🚔 警察差 ${margin}秒 才到\n你能比我多抢吗？`;
           navigator.clipboard?.writeText(shareText).then(() => {
             const copiedText = this.add.text(cx, shareY + 40, '✅ 战绩已复制到剪贴板！', {
               fontFamily: '"Press Start 2P", monospace',
@@ -689,7 +705,7 @@ export default class ResultScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
 
     // 3. Could-have money — golden big text
-    const couldHaveText = this.add.text(cx, couldHaveY, `$${moneyIfOneLess.toLocaleString()}`, {
+    const couldHaveText = this.add.text(cx, couldHaveY, this.formatMoney(moneyIfOneLess), {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '32px',
       color: '#ffd700',
@@ -707,7 +723,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // 4. Summary row
     const totalBeforeCaught = data.totalMoneyBeforeCaught || 0;
-    const summaryStr = `💰 抢了 ${data.bags} 袋 · 罚没 $${totalBeforeCaught.toLocaleString()}`;
+    const summaryStr = `💰 抢了 ${data.bags} 袋 · 罚没 ${this.formatMoney(totalBeforeCaught)}`;
     const summaryText = this.add.text(cx, summaryY, summaryStr, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '10px',

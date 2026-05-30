@@ -369,7 +369,7 @@ export default class ResultScene extends Phaser.Scene {
 
     const policeText = this.add.text(cx - 85, row1Y, `警察到达：仅剩 ${marginSec} 秒！`, {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '13px',
       color: marginSec <= 3 ? '#ff3333' : '#aaccff',
       stroke: '#000',
       strokeThickness: 4,
@@ -388,7 +388,7 @@ export default class ResultScene extends Phaser.Scene {
     // Emoji and rating text on the SAME line, emoji to the left
     const ratingText = this.add.text(cx - 55, row2Y + 20, `${vehicleEmoji} ${ratingTextStr}`, {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '13px',
       color: ratingColor,
       stroke: '#000',
       strokeThickness: 4,
@@ -398,7 +398,7 @@ export default class ResultScene extends Phaser.Scene {
     const elapsed = Math.round(data.timeUsed * 10) / 10;
     const bagsText = this.add.text(cx, row3Y, `🎒 捡了 ${data.bags} 袋  ⏱️ 用时 ${elapsed}秒`, {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '10px',
+      fontSize: '12px',
       color: '#ffffff',
       stroke: '#000',
       strokeThickness: 4,
@@ -424,89 +424,11 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   // ==================================================================
-  //  Retry & Share Buttons (shared by success & fail)
+  //  Retry Button
   // ==================================================================
   showRetryAndShareButtons(cx, rY, sY) {
-    const retryScale = (220 / 300) * 0.7;
-    const shareScale = 160 / 238;
-
-    const retryBtn = this.add.image(cx, rY, 'btnRetry')
-      .setScale(retryScale)
-      .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
-
-    const shareBtn = this.add.image(cx, sY, 'btnShare')
-      .setScale(shareScale)
-      .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
-
-    this.tweens.add({
-      targets: [retryBtn, shareBtn],
-      alpha: 1,
-      duration: 400,
-    });
-
-    // Breathing pulse — uniform scale
-    this.tweens.add({
-      targets: retryBtn,
-      scale: { from: retryScale, to: retryScale * 1.04 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-    });
-
-    this.tweens.add({
-      targets: shareBtn,
-      scale: { from: shareScale, to: shareScale * 1.04 },
-      duration: 600,
-      yoyo: true,
-      repeat: -1,
-      delay: 150,
-    });
-
-    retryBtn.on('pointerdown', () => {
-      this.tweens.add({
-        targets: retryBtn,
-        scale: retryScale * 0.9,
-        duration: 80,
-        yoyo: true,
-        onComplete: () => {
-          this.cameras.main.fadeOut(300, 0, 0, 0);
-          this.time.delayedCall(350, () => {
-            this.scene.start('GameScene');
-          });
-        },
-      });
-    });
-
-    shareBtn.on('pointerdown', () => {
-      this.tweens.add({
-        targets: shareBtn,
-        scale: shareScale * 0.9,
-        duration: 80,
-        yoyo: true,
-        onComplete: () => {
-          const shareText = `我在 k165.com 上玩《一分钟劫匪》，抢到了 ${this.formatMoney(this.result.money)}！实在太刺激了，你也快来试试你的手速吧！网址：http://k165.com`;
-          navigator.clipboard?.writeText(shareText).then(() => {
-            const copiedText = this.add.text(cx, sY + 40, '✅ 战绩已复制到剪贴板！', {
-              fontFamily: '"Zpix", "Press Start 2P", monospace',
-              fontSize: '9px',
-              color: '#66ff66',
-              stroke: '#000',
-              strokeThickness: 3,
-            }).setOrigin(0.5).setDepth(20);
-            this.time.delayedCall(1500, () => copiedText.destroy());
-          }).catch(() => {
-            const copiedText = this.add.text(cx, sY + 40, '❌ 复制失败，请重试', {
-              fontFamily: '"Zpix", "Press Start 2P", monospace',
-              fontSize: '9px',
-              color: '#ff4444',
-              stroke: '#000',
-              strokeThickness: 3,
-            }).setOrigin(0.5).setDepth(20);
-            this.time.delayedCall(1500, () => copiedText.destroy());
-          });
-        },
-      });
-    });
+    // 分享按钮暂时隐藏，直接调用单按钮方法居中显示
+    this.showRetryButton(cx, rY);
   }
 
   showRetryButton(cx, ypos) {
@@ -686,7 +608,7 @@ export default class ResultScene extends Phaser.Scene {
     const moneyIfOneLess = data.moneyIfOneLess || 0;
     const hintText1 = this.add.text(cx, hintY, '如果你少抢 1 袋钱…', {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#aaaacc',
       stroke: '#000',
       strokeThickness: 3,
@@ -694,7 +616,7 @@ export default class ResultScene extends Phaser.Scene {
 
     const hintText2 = this.add.text(cx, hintY2, '你本可以带走', {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#aaaacc',
       stroke: '#000',
       strokeThickness: 3,
@@ -722,7 +644,7 @@ export default class ResultScene extends Phaser.Scene {
     const summaryStr = `💰 抢了 ${data.bags} 袋 · 罚没 ${this.formatMoney(totalBeforeCaught)}`;
     const summaryText = this.add.text(cx, summaryY, summaryStr, {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '10px',
+      fontSize: '12px',
       color: '#ffffff',
       stroke: '#000',
       strokeThickness: 4,

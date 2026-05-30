@@ -87,13 +87,13 @@ export default class MenuScene extends Phaser.Scene {
     // ── 游戏标题 (带阴影) ──
     // 阴影层
     const titleShadow = this.add.image(cx + 3, 223, 'homeTitle');
-    titleShadow.setScale(0.5);
+    titleShadow.setScale(0.6);
     titleShadow.setTint(0x000000);
     titleShadow.setAlpha(0.5);
 
     // 标题层
     const title = this.add.image(cx, 220, 'homeTitle');
-    title.setScale(0.5);
+    title.setScale(0.6);
 
     // 标题动画（阴影跟随）
     this.tweens.add({

@@ -1782,7 +1782,7 @@ export default class GameScene extends Phaser.Scene {
 
     const txt = this.add.text(x, y, customText, {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
-      fontSize: '24px',
+      fontSize: '28px',
       color: '#00ff00',
       stroke: '#000000',
       strokeThickness: 5,

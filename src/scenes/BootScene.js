@@ -113,11 +113,24 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // 等待字体加载，然后生成纹理并创建动画
-    document.fonts.ready.then(() => {
+    // 设置最大等待超时时间为 600 毫秒，超时后强制进入游戏，避免因为 Google Fonts 网络慢导致卡在 98% / 100% 进度条
+    let fontLoaded = false;
+    const startGame = () => {
+      if (fontLoaded) return;
+      fontLoaded = true;
       this.generateAllTextures();
       this.createAnimations();
       this.scene.start('MenuScene');
+    };
+
+    // 正常字体加载完回调
+    document.fonts.ready.then(() => {
+      startGame();
+    });
+
+    // 600ms 超时兜底，确保秒开
+    this.time.delayedCall(600, () => {
+      startGame();
     });
   }
 

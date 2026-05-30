@@ -268,9 +268,9 @@ export default class GameScene extends Phaser.Scene {
     this.safes = [];
     const positions = [
       { x: 75, y: 190, mult: 5 },  // Top Left
-      { x: 375, y: 190, mult: 15 }, // Top Right
+      { x: 375, y: 190, mult: 15 }, // Top Right (Button safe)
       { x: 75, y: 350, mult: 10 }, // Bottom Left
-      { x: 375, y: 350, mult: 25 }, // Bottom Right (Password 5-digits)
+      { x: 375, y: 350, mult: 40 }, // Bottom Right (Password 5-digits + Rotating)
       { x: GAME.WIDTH / 2, y: GAME.HEIGHT / 2 - 50, mult: 20 } // Center (Rotating)
     ];
 
@@ -280,7 +280,7 @@ export default class GameScene extends Phaser.Scene {
       else if (pos.mult === 10) textureKey = 'safe_10';
       else if (pos.mult === 15) textureKey = 'safe_15';
       else if (pos.mult === 20) textureKey = 'safe_diamond';
-      else if (pos.mult === 25) textureKey = 'safe_bg';
+      else if (pos.mult === 40) textureKey = 'safe_bg';
 
       const safe = this.add.image(pos.x, pos.y, textureKey)
         .setDepth(8)
@@ -288,7 +288,7 @@ export default class GameScene extends Phaser.Scene {
 
       let targetW = 44;
       if (pos.mult === 20) targetW = 45;
-      else if (pos.mult === 25) targetW = 53;
+      else if (pos.mult === 40) targetW = 53;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);
 
@@ -905,6 +905,8 @@ export default class GameScene extends Phaser.Scene {
     
     if (safe.multiplier === 20) {
       this.showDiamondSafeUI(safe);
+    } else if (safe.multiplier === 15) {
+      this.showButtonSafeUI(safe);
     } else {
       this.showSafeCrackingUI(safe);
     }
@@ -912,7 +914,8 @@ export default class GameScene extends Phaser.Scene {
 
   showSafeCrackingUI(safe) {
     this.safePassword = '';
-    for (let i = 0; i < 3; i++) {
+    const maxLength = safe.multiplier === 40 ? 5 : 3;
+    for (let i = 0; i < maxLength; i++) {
       this.safePassword += Phaser.Math.Between(1, 9).toString();
     }
     this.safeInput = '';
@@ -939,14 +942,16 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     let morseHintStr = '';
-    for (let i = 0; i < 3; i++) {
+    const maxLength = safe.multiplier === 40 ? 5 : 3;
+    for (let i = 0; i < maxLength; i++) {
       morseHintStr += MORSE_CODE[this.safePassword[i]] + '\n';
     }
     const hintText = this.add.text(cx, 180, morseHintStr, {
-      fontFamily: 'monospace', fontSize: '24px', color: '#ffffff', align: 'center', lineSpacing: 10
+      fontFamily: 'monospace', fontSize: maxLength === 5 ? '18px' : '24px', color: '#ffffff', align: 'center', lineSpacing: 10
     }).setOrigin(0.5);
     
-    this.safeInputDisplay = this.add.text(cx, 280, '___', {
+    const underscores = '_'.repeat(maxLength);
+    this.safeInputDisplay = this.add.text(cx, 280, underscores, {
       fontFamily: '"Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
     }).setOrigin(0.5);
     
@@ -958,6 +963,7 @@ export default class GameScene extends Phaser.Scene {
       if (this.safeInput.length > 0) {
         this.safeInput = this.safeInput.slice(0, -1);
         let displayStr = this.safeInput;
+        const maxLength = safe.multiplier === 40 ? 5 : 3;
         while (displayStr.length < maxLength) displayStr += '_';
         this.safeInputDisplay.setText(displayStr);
       }
@@ -1014,7 +1020,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   onSafeNumpadClick(num) {
-    const maxLength = this.currentSafe.multiplier === 25 ? 5 : 3;
+    const maxLength = this.currentSafe.multiplier === 40 ? 5 : 3;
     if (this.safeInput.length < maxLength) {
       this.safeInput += num.toString();
       let displayStr = this.safeInput;
@@ -1029,10 +1035,17 @@ export default class GameScene extends Phaser.Scene {
 
   checkSafePassword() {
     if (this.safeInput === this.safePassword) {
-      this.closeSafeCrackingUI(true);
+      if (this.currentSafe.multiplier === 40) {
+        this.closeSafeCrackingUI(true, true);
+        this.time.delayedCall(100, () => {
+          this.showDiamondSafeUI(this.currentSafe);
+        });
+      } else {
+        this.closeSafeCrackingUI(true);
+      }
     } else {
       this.cameras.main.shake(200, 0.01);
-      const maxLength = this.currentSafe.multiplier === 25 ? 5 : 3;
+      const maxLength = this.currentSafe.multiplier === 40 ? 5 : 3;
       this.safeInputDisplay.setText('_'.repeat(maxLength));
       this.safeInputDisplay.setColor('#ff0000');
       this.time.delayedCall(300, () => {
@@ -1042,7 +1055,7 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  closeSafeCrackingUI(success) {
+  closeSafeCrackingUI(success, isPartial = false) {
     if (this.diamondSafeCleanup) {
       this.diamondSafeCleanup();
       this.diamondSafeCleanup = null;
@@ -1054,8 +1067,12 @@ export default class GameScene extends Phaser.Scene {
     }
     this.isCracking = false;
 
-    if (success && this.currentSafe) {
-      const safe = this.currentSafe;
+    if (success && !isPartial) {
+      this.openSafe(this.currentSafe);
+    }
+  }
+
+  openSafe(safe) {
       safe.collected = true;
       const oldMoney = this.totalMoney;
       
@@ -1084,6 +1101,61 @@ export default class GameScene extends Phaser.Scene {
       }
     }
     this.currentSafe = null;
+  }
+
+  showButtonSafeUI(safe) {
+    this.isCracking = true;
+    const cx = GAME.WIDTH / 2;
+    const cy = GAME.HEIGHT / 2;
+
+    this.safeUIContainer = this.add.container(0, 0).setDepth(200);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.85);
+    overlay.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
+    
+    const titleText = this.add.text(cx, 200, '🖱️ 疯狂点击按钮', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
+    }).setOrigin(0.5);
+    
+    let pressCount = 0;
+    const requiredPresses = 5;
+    
+    const progressText = this.add.text(cx, cy - 100, '0 / 5', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '24px', color: '#00ff00'
+    }).setOrigin(0.5);
+
+    const btnImg = this.add.image(cx, cy + 50, 'btn_normal').setInteractive({ useHandCursor: true });
+    
+    btnImg.on('pointerdown', () => {
+      btnImg.setTexture('btn_pressed');
+      pressCount++;
+      progressText.setText(`${Math.min(pressCount, requiredPresses)} / ${requiredPresses}`);
+      this.vibrateDevice(20);
+      
+      if (pressCount >= requiredPresses) {
+        btnImg.disableInteractive();
+        progressText.setText('解锁成功！');
+        this.time.delayedCall(500, () => {
+          this.closeSafeCrackingUI(true);
+        });
+      }
+    });
+
+    btnImg.on('pointerup', () => {
+      btnImg.setTexture('btn_normal');
+    });
+    btnImg.on('pointerout', () => {
+      btnImg.setTexture('btn_normal');
+    });
+
+    const closeBtn = this.add.text(cx, 720, '[ 放弃破解 ]', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.closeSafeCrackingUI(false));
+
+    this.safeUIContainer.add([overlay, titleText, progressText, btnImg, closeBtn]);
   }
 
   showDiamondSafeUI(safe) {

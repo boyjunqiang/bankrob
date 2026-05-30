@@ -48,8 +48,8 @@ export default class BootScene extends Phaser.Scene {
     this.load.video('homeVideo', 'assets/首页视频.mp4');
     this.load.audio('homeAudio', 'assets/启动页.mp3');
     this.load.audio('menuSiren', 'assets/menu_siren.mp3');
-    this.load.image('homeBtn', 'assets/首页开始按钮.png');
-    this.load.image('homeTitle', 'assets/首页标题.png');
+    this.load.image('homeBtn', 'assets/首页开始按钮.webp');
+    this.load.image('homeTitle', 'assets/首页标题.webp');
 
     // 加载外部新资源
     this.load.image('gameBg', 'assets/游戏主画面.webp');
@@ -80,20 +80,20 @@ export default class BootScene extends Phaser.Scene {
 
     // 成功结算页优化新资源
     this.load.image('victoryBg', 'assets/胜利背景.webp');
-    this.load.image('successHeader', 'assets/成功逃脱.png');
-    this.load.image('successHighScoreHeader', 'assets/成功逃脱新高分.png');
+    this.load.image('successHeader', 'assets/成功逃脱.webp');
+    this.load.image('successHighScoreHeader', 'assets/成功逃脱新高分.webp');
     this.load.image('popupMoney', 'assets/弹出框钱.png');
     this.load.image('popupPoliceCar', 'assets/弹出框警车.png');
     this.load.image('popupHumanDisdain', 'assets/弹出框小人鄙视.png');
     this.load.image('popupHumanHappy', 'assets/弹出框小人鄙视开心.png');
-    this.load.image('btnShare', 'assets/分享战绩.png');
-    this.load.image('btnRetry', 'assets/再来一次.png');
-    this.load.image('btnEscape', 'assets/逃跑.png');
+    this.load.image('btnShare', 'assets/分享战绩.webp');
+    this.load.image('btnRetry', 'assets/再来一次.webp');
+    this.load.image('btnEscape', 'assets/逃跑.webp');
     this.load.image('fallingBill', 'assets/飘落钞票.png');
 
     // 失败结算页资源
     this.load.image('failBg', 'assets/失败背景.webp');
-    this.load.image('failHeader', 'assets/失败标题.png');
+    this.load.image('failHeader', 'assets/失败标题.webp');
 
     // 预加载劫匪台词语音
     this.load.audio('voiceLine1', 'assets/台词1.mp3');

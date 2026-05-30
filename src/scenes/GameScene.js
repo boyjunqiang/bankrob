@@ -823,9 +823,6 @@ export default class GameScene extends Phaser.Scene {
 
     if (bag.amount) {
       this.totalMoney += bag.amount;
-    } else if (this.bagsCollected === 1 && this.totalMoney === MONEY.INITIAL) {
-      // 如果还没拿过其他钱（比如解开过保险箱），那第一个袋子就保持初始金额 $1
-      this.totalMoney = MONEY.INITIAL;
     } else {
       // 正常乘以专属倍数，确保至少涨1块钱
       this.totalMoney = Math.max(this.totalMoney + 1, Math.round(this.totalMoney * bag.multiplier));

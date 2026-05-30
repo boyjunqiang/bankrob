@@ -14,7 +14,7 @@ export const TIMER = {
 };
 
 export const MONEY = {
-  INITIAL: 1,               // 第一个钱袋的金额
+  INITIAL: 0,               // 第一个钱袋的金额 / 初始金额
 };
 
 export const ROBBER = {

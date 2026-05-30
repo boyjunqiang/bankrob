@@ -108,8 +108,8 @@ export default class MenuScene extends Phaser.Scene {
     // ── 开始按钮 (带虚化阴影) ──
     // 用 Canvas 生成虚化阴影纹理
     const btnTex = this.textures.get('homeBtn').getSourceImage();
-    const btnW = btnTex.width * 0.45;
-    const btnH = btnTex.height * 0.45;
+    const btnW = btnTex.width * 0.6;
+    const btnH = btnTex.height * 0.6;
     const blur = 20;
     const pad = blur * 2;
     const shadowCanvas = document.createElement('canvas');
@@ -154,13 +154,13 @@ export default class MenuScene extends Phaser.Scene {
 
     // 按钮层
     const btn = this.add.image(cx, 565, 'homeBtn');
-    btn.setScale(0.45);
+    btn.setScale(0.6);
 
     // 按钮呼吸动画（阴影跟随）
     this.tweens.add({
       targets: btn,
-      scaleX: 0.48,
-      scaleY: 0.48,
+      scaleX: 0.63,
+      scaleY: 0.63,
       duration: 700,
       yoyo: true,
       repeat: -1,
@@ -202,8 +202,8 @@ export default class MenuScene extends Phaser.Scene {
       // 按下反馈
       this.tweens.add({
         targets: [btn, btnShadow],
-        scaleX: 0.4,
-        scaleY: 0.4,
+        scaleX: 0.55,
+        scaleY: 0.55,
         duration: 80,
         yoyo: true,
         onComplete: () => {

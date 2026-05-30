@@ -1125,7 +1125,7 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#ffd700'
     }).setOrigin(0.5);
     
-    const hintText = this.add.text(cx, 230, '长按下方指纹印\n在心里默数 3 秒\n(必须在2.8秒~3.2秒内松开)', {
+    const hintText = this.add.text(cx, 230, '长按下方指纹印\n在心里默数 3 秒\n(必须在2.5秒~3.5秒内松开)', {
       fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '12px', color: '#aaaaaa', align: 'center', lineSpacing: 10
     }).setOrigin(0.5);
 
@@ -1185,7 +1185,7 @@ export default class GameScene extends Phaser.Scene {
       this.vibrateDevice(50);
 
       if (failTimer) failTimer.remove();
-      failTimer = this.time.delayedCall(3201, () => {
+      failTimer = this.time.delayedCall(3501, () => {
         if (isPressing) {
           isPressing = false;
           statusText.setText('按太久了！触发警报');
@@ -1205,7 +1205,7 @@ export default class GameScene extends Phaser.Scene {
       
       const holdTime = this.time.now - pressStartTime;
       
-      if (holdTime >= 2800 && holdTime <= 3200) {
+      if (holdTime >= 2500 && holdTime <= 3500) {
         statusText.setText(`成功! (${(holdTime/1000).toFixed(2)}秒)`);
         statusText.setColor('#00ff00');
         btnGraphic.disableInteractive();
@@ -1213,7 +1213,7 @@ export default class GameScene extends Phaser.Scene {
         this.time.delayedCall(600, () => {
           this.closeSafeCrackingUI(true);
         });
-      } else if (holdTime < 2800) {
+      } else if (holdTime < 2500) {
         statusText.setText(`太快了! (${(holdTime/1000).toFixed(2)}秒)`);
         statusText.setColor('#ff0000');
         this.cameras.main.shake(200, 0.01);

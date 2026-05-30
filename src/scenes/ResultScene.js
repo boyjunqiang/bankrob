@@ -431,11 +431,7 @@ export default class ResultScene extends Phaser.Scene {
   // ==================================================================
   //  Retry & Share Buttons (shared by success & fail)
   // ==================================================================
-  showRetryAndShareButtons(cx, retryY, shareY) {
-    // 1. Retry Button — use uniform scale to preserve aspect ratio
-    const rY = GAME.HEIGHT - 210;
-    const sY = GAME.HEIGHT - 140;
-
+  showRetryAndShareButtons(cx, rY, sY) {
     const retryScale = 220 / 300;
     const shareScale = 160 / 238;
 
@@ -453,8 +449,9 @@ export default class ResultScene extends Phaser.Scene {
       color: '#ffd700',
       backgroundColor: '#333333',
       padding: { x: 10, y: 10 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
+    }).setOrigin(0.5).setDepth(15).setAlpha(0);
     
+    boardBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, boardBtn.width, boardBtn.height), Phaser.Geom.Rectangle.Contains);
     boardBtn.on('pointerdown', () => this.showLeaderboard(cx));
 
     this.tweens.add({
@@ -529,8 +526,7 @@ export default class ResultScene extends Phaser.Scene {
     });
   }
 
-  showRetryButton(cx, y) {
-    const ypos = GAME.HEIGHT / 2 + 130;
+  showRetryButton(cx, ypos) {
     const retryScale = 200 / 300;
 
     const retryBtn = this.add.image(cx, ypos, 'btnRetry')
@@ -543,8 +539,9 @@ export default class ResultScene extends Phaser.Scene {
       color: '#ffd700',
       backgroundColor: '#333333',
       padding: { x: 10, y: 10 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
+    }).setOrigin(0.5).setDepth(15).setAlpha(0);
     
+    boardBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, boardBtn.width, boardBtn.height), Phaser.Geom.Rectangle.Contains);
     boardBtn.on('pointerdown', () => this.showLeaderboard(cx));
 
     this.tweens.add({

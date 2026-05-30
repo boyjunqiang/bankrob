@@ -4,7 +4,7 @@ import {
   BANK, PARTNER_LINES, ROBBER_LINES, ROBBER_QUIPS,
 } from '../config/gameConfig.js';
 
-const BAG_SCALE = 0.05;
+const BAG_SCALE = 1.0;
 const PARTNER_SCALE = 42 / 104;
 
 // 主角显示尺寸
@@ -227,11 +227,6 @@ export default class GameScene extends Phaser.Scene {
     ];
 
     positions.forEach(pos => {
-      const shadow = this.add.graphics()
-        .setDepth(2)
-        .fillStyle(0x000000, 0.4)
-        .fillEllipse(pos.x, pos.y + 12, 18, 6);
-
       let bagTexture = 'bag_yellow';
       if (pos.amount === 20) bagTexture = 'bag_brown';
       else if (pos.multiplier === 2) bagTexture = 'bag_dark';
@@ -587,19 +582,6 @@ export default class GameScene extends Phaser.Scene {
                 }
               },
             });
-
-            // 影子同步淡入和缩放动画 (Phaser 3 中 Graphics 的 scaleTween 需直接改变 scaleX 和 scaleY)
-            if (bag.shadow) {
-              this.tweens.add({
-                targets: bag.shadow,
-                alpha: { from: 0, to: 1 },
-                scaleX: { from: 0.2, to: 1 },
-                scaleY: { from: 0.2, to: 1 },
-                duration: 350,
-                delay: i * 7,
-                ease: 'Bounce.easeOut',
-              });
-            }
 
             // 贴在钱袋上的文字也同步飞出
             if (bag.label) {

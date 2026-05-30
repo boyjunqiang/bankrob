@@ -287,7 +287,7 @@ export default class GameScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       let targetW = 44;
-      if (pos.mult === 20) targetW = 114;
+      if (pos.mult === 20) targetW = 91;
       else if (pos.mult === 25) targetW = 53;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);

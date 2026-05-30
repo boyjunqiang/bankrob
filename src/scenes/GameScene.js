@@ -942,7 +942,6 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     let morseHintStr = '';
-    const maxLength = safe.multiplier === 40 ? 5 : 3;
     for (let i = 0; i < maxLength; i++) {
       morseHintStr += MORSE_CODE[this.safePassword[i]] + '\n';
     }
@@ -963,7 +962,6 @@ export default class GameScene extends Phaser.Scene {
       if (this.safeInput.length > 0) {
         this.safeInput = this.safeInput.slice(0, -1);
         let displayStr = this.safeInput;
-        const maxLength = safe.multiplier === 40 ? 5 : 3;
         while (displayStr.length < maxLength) displayStr += '_';
         this.safeInputDisplay.setText(displayStr);
       }
@@ -1073,32 +1071,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   openSafe(safe) {
-      safe.collected = true;
-      const oldMoney = this.totalMoney;
-      
-      this.totalMoney *= safe.multiplier;
-      
-      const gained = this.totalMoney - oldMoney;
-      this.showMoneyPopup(safe.x, safe.y - 20, this.formatMoney(gained).replace('$', '+$'));
+    safe.collected = true;
+    const oldMoney = this.totalMoney;
+    
+    this.totalMoney *= safe.multiplier;
+    
+    const gained = this.totalMoney - oldMoney;
+    this.showMoneyPopup(safe.x, safe.y - 20, this.formatMoney(gained).replace('$', '+$'));
 
-      this.updateMoneyDisplay();
-      this.spawnGoldParticles(safe.x, safe.y);
-      this.playCollectSound();
-      this.vibrateDevice(50);
+    this.updateMoneyDisplay();
+    this.spawnGoldParticles(safe.x, safe.y);
+    this.playCollectSound();
+    this.vibrateDevice(50);
 
-      this.tweens.add({
-        targets: safe, scale: 0, alpha: 0, y: safe.y - 20, duration: 250, ease: 'Back.easeIn',
-        onComplete: () => safe.destroy(),
-      });
-      if (safe.label) {
-        this.tweens.add({ targets: safe.label, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.label.destroy() });
-      }
-      if (safe.glow) {
-        this.tweens.add({ targets: safe.glow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.glow.destroy() });
-      }
-      if (safe.shadow) {
-        this.tweens.add({ targets: safe.shadow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.shadow.destroy() });
-      }
+    this.tweens.add({
+      targets: safe, scale: 0, alpha: 0, y: safe.y - 20, duration: 250, ease: 'Back.easeIn',
+      onComplete: () => safe.destroy(),
+    });
+    if (safe.label) {
+      this.tweens.add({ targets: safe.label, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.label.destroy() });
+    }
+    if (safe.glow) {
+      this.tweens.add({ targets: safe.glow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.glow.destroy() });
+    }
+    if (safe.shadow) {
+      this.tweens.add({ targets: safe.shadow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.shadow.destroy() });
     }
     this.currentSafe = null;
   }

@@ -203,22 +203,22 @@ export default class GameScene extends Phaser.Scene {
       { x: 310, y: 480, multiplier: 2 },
       { x: 225, y: 350, multiplier: 2 },
       { x: 225, y: 480, multiplier: 2 },
-      // (x1.5) - 8个
-      { x: 90, y: 520, multiplier: 1.5 },
-      { x: 140, y: 540, multiplier: 1.5 },
-      { x: 190, y: 520, multiplier: 1.5 },
-      { x: 260, y: 540, multiplier: 1.5 },
-      { x: 310, y: 520, multiplier: 1.5 },
-      { x: 360, y: 540, multiplier: 1.5 },
-      { x: 120, y: 570, multiplier: 1.5 },
-      { x: 330, y: 570, multiplier: 1.5 },
-      // 靠近大门 (x1.2 / x1.1) - 6个
-      { x: 160, y: 600, multiplier: 1.2 },
-      { x: 225, y: 600, multiplier: 1.2 },
-      { x: 290, y: 600, multiplier: 1.2 },
-      { x: 130, y: 620, multiplier: 1.1 },
-      { x: 320, y: 620, multiplier: 1.1 },
-      { x: 225, y: 630, multiplier: 1.1 },
+      // 改为加20 - 8个
+      { x: 90, y: 520, amount: 20 },
+      { x: 140, y: 540, amount: 20 },
+      { x: 190, y: 520, amount: 20 },
+      { x: 260, y: 540, amount: 20 },
+      { x: 310, y: 520, amount: 20 },
+      { x: 360, y: 540, amount: 20 },
+      { x: 120, y: 570, amount: 20 },
+      { x: 330, y: 570, amount: 20 },
+      // 靠近大门 改为加20 - 6个
+      { x: 160, y: 600, amount: 20 },
+      { x: 225, y: 600, amount: 20 },
+      { x: 290, y: 600, amount: 20 },
+      { x: 130, y: 620, amount: 20 },
+      { x: 320, y: 620, amount: 20 },
+      { x: 225, y: 630, amount: 20 },
     ];
 
     positions.forEach(pos => {
@@ -236,18 +236,25 @@ export default class GameScene extends Phaser.Scene {
         .setAlpha(0)
         .setInteractive({ useHandCursor: true, pixelPerfect: false });
 
-      if (pos.multiplier >= 3) {
-        bag.setTint(0xffcc00); // 金色
-      } else if (pos.multiplier >= 2.5) {
-        bag.setTint(0x44ff44); // 绿色
-      } else if (pos.multiplier >= 2) {
-        // 普通颜色 (无 tint)
-      } else {
+      let labelText = '';
+      if (pos.multiplier) {
+        if (pos.multiplier >= 3) {
+          bag.setTint(0xffcc00); // 金色
+        } else if (pos.multiplier >= 2.5) {
+          bag.setTint(0x44ff44); // 绿色
+        } else if (pos.multiplier >= 2) {
+          // 普通颜色 (无 tint)
+        }
+        bag.multiplier = pos.multiplier;
+        labelText = `x${pos.multiplier}`;
+      } else if (pos.amount) {
         bag.setTint(0x888888); // 灰色
+        bag.amount = pos.amount;
+        labelText = `+$${pos.amount}`;
       }
 
       // 添加印在钱袋上的文字 (小号，直接贴在袋子上)
-      const label = this.add.text(pos.x, pos.y + 12, `x${pos.multiplier}`, {
+      const label = this.add.text(pos.x, pos.y + 12, labelText, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '10px',
         color: '#ffffff',
@@ -257,7 +264,6 @@ export default class GameScene extends Phaser.Scene {
 
       bag.shadow = shadow;
       bag.label = label;
-      bag.multiplier = pos.multiplier;
       bag.collected = false;
       bag.on('pointerdown', () => this.onBagClicked(bag));
       this.moneyBags.push(bag);
@@ -848,13 +854,19 @@ export default class GameScene extends Phaser.Scene {
     bag.collected = true;
     this.bagsCollected++;
 
-    if (this.bagsCollected === 1 && this.totalMoney === MONEY.INITIAL) {
+    const oldMoney = this.totalMoney;
+
+    if (bag.amount) {
+      this.totalMoney += bag.amount;
+    } else if (this.bagsCollected === 1 && this.totalMoney === MONEY.INITIAL) {
       // 如果还没拿过其他钱（比如解开过保险箱），那第一个袋子就保持初始金额 $1
       this.totalMoney = MONEY.INITIAL;
     } else {
       // 正常乘以专属倍数，确保至少涨1块钱
       this.totalMoney = Math.max(this.totalMoney + 1, Math.round(this.totalMoney * bag.multiplier));
     }
+
+    const diff = this.totalMoney - oldMoney;
 
     // ── 视觉反馈 ──
     // 钱袋消失动画
@@ -895,7 +907,11 @@ export default class GameScene extends Phaser.Scene {
 
     // ── 视觉反馈 ──
     this.updateMoneyDisplay();
-    this.showMoneyPopup(bag.x, bag.y - 20, `x${bag.multiplier} 倍!`);
+    if (diff > 0) {
+      this.showMoneyPopup(bag.x, bag.y - 20, `+${this.formatMoney(diff)}`);
+    } else if (this.bagsCollected === 1 && diff === 0) {
+      this.showMoneyPopup(bag.x, bag.y - 20, `+$0`);
+    }
 
     this.spawnGoldParticles(bag.x, bag.y);
 
@@ -962,7 +978,20 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: '"Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
     }).setOrigin(0.5);
     
-    this.safeUIContainer.add([titleText, hintText, this.safeInputDisplay]);
+    const delBtn = this.add.text(cx + 90, 280, '[删]', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    
+    delBtn.on('pointerdown', () => {
+      if (this.safeInput.length > 0) {
+        this.safeInput = this.safeInput.slice(0, -1);
+        let displayStr = this.safeInput;
+        while (displayStr.length < 3) displayStr += '_';
+        this.safeInputDisplay.setText(displayStr);
+      }
+    });
+
+    this.safeUIContainer.add([titleText, hintText, this.safeInputDisplay, delBtn]);
 
     const padStartX = cx - 70;
     const padStartY = 360;
@@ -1050,15 +1079,20 @@ export default class GameScene extends Phaser.Scene {
       const safe = this.currentSafe;
       safe.collected = true;
       
+      const oldMoney = this.totalMoney;
+
       if (safe.safeType === 'yellow') {
         this.totalMoney *= 5;
-        this.showMoneyPopup(safe.x, safe.y - 20, 'x5 倍!');
       } else if (safe.safeType === 'green') {
         this.totalMoney *= 10;
-        this.showMoneyPopup(safe.x, safe.y - 20, 'x10 倍!');
       }
 
+      const diff = this.totalMoney - oldMoney;
+
       this.updateMoneyDisplay();
+      if (diff > 0) {
+        this.showMoneyPopup(safe.x, safe.y - 20, `+${this.formatMoney(diff)}`);
+      }
       this.spawnGoldParticles(safe.x, safe.y);
       this.playCollectSound();
       this.vibrateDevice(50);

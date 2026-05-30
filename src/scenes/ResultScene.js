@@ -213,66 +213,64 @@ export default class ResultScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(10);
 
-    let amount = 0;
-    for (let i = 0; i < data.bags; i++) {
-      amount = i === 0 ? 1 : amount * 2;
-      const displayAmount = amount;
-      const isLast = i === data.bags - 1;
-      const delay = Math.max(40, 150 - i * 3);
+    subText.setText('清点赃款中...');
+    subText.setAlpha(1);
 
-      this.time.delayedCall(i * delay, () => {
-        moneyText.setText(this.formatMoney(displayAmount));
+    let dummy = { val: 0 };
+    const duration = data.money <= 200 ? 1000 : 2500;
+    let lastPlayTime = 0;
+
+    this.tweens.add({
+      targets: dummy,
+      val: data.money,
+      duration: duration,
+      ease: 'Quad.easeIn',
+      onUpdate: () => {
+        let displayVal = dummy.val;
+        
+        // 前200块按10块一档跳动，超过200后就平滑加速跳动
+        if (displayVal <= 200) {
+          displayVal = Math.floor(displayVal / 10) * 10;
+          if (displayVal === 0 && dummy.val > 0) displayVal = Math.floor(dummy.val);
+        } else {
+          displayVal = Math.floor(displayVal);
+        }
+
+        moneyText.setText(this.formatMoney(displayVal));
         moneyText.setScale(1);
         const targetScale = moneyText.width > maxW ? maxW / moneyText.width : 1;
         moneyText.setScale(targetScale);
 
-        // Adjust decoration positions
         const textWidth = moneyText.width * targetScale;
         decorLeft.x = cx - textWidth / 2 - 28;
         decorRight.x = cx + textWidth / 2 + 28;
+        decorLeft.setScale(1);
+        decorRight.setScale(1);
 
-        decorLeft.setScale(decorLeft.scaleX === 0 ? 0 : 1);
-        decorRight.setScale(decorRight.scaleX === 0 ? 0 : 1);
-
-        if (i > 0) {
-          subText.setText(`第${i + 1}袋 · x2 翻倍！`);
-          subText.setAlpha(1);
-          this.tweens.add({
-            targets: subText,
-            alpha: { from: 1, to: 0.5 },
-            duration: 200,
-          });
-        } else {
-          subText.setText('第1袋');
+        const now = this.time.now;
+        if (now - lastPlayTime > 60) {
+          lastPlayTime = now;
+          this.playTone(400 + Math.random() * 200, 0.05, 'square', 0.05);
         }
+      },
+      onComplete: () => {
+        moneyText.setText(this.formatMoney(data.money));
+        moneyText.setScale(1);
+        const targetScale = moneyText.width > maxW ? maxW / moneyText.width : 1;
+        moneyText.setScale(targetScale);
 
-        // Bounce text and decors
-        this.tweens.add({
-          targets: moneyText,
-          scale: { from: targetScale * 1.3, to: targetScale },
-          duration: 200,
-          ease: 'Bounce.easeOut',
+        const textWidth = moneyText.width * targetScale;
+        decorLeft.x = cx - textWidth / 2 - 28;
+        decorRight.x = cx + textWidth / 2 + 28;
+        
+        subText.setText('清点完成！');
+        this.time.delayedCall(300, () => {
+          this.triggerMoneyExplosion(cx, moneyText, targetScale, decorLeft, decorRight);
         });
-        this.tweens.add({
-          targets: [decorLeft, decorRight],
-          scaleX: { from: (42 / 162) * 1.3, to: 42 / 162 },
-          scaleY: { from: (34 / 131) * 1.3, to: 34 / 131 },
-          duration: 200,
-          ease: 'Bounce.easeOut',
-        });
+      }
+    });
 
-        const freq = 400 + i * 40;
-        this.playTone(freq, 0.1, 'square', 0.08);
-
-        if (isLast) {
-          this.time.delayedCall(300, () => {
-            this.triggerMoneyExplosion(cx, moneyText, targetScale, decorLeft, decorRight);
-          });
-        }
-      });
-    }
-
-    this._countDuration = data.bags * Math.max(40, 150 - data.bags * 3);
+    this._countDuration = duration + 300;
   }
 
   triggerMoneyExplosion(cx, moneyText, targetScale = 1, decorLeft, decorRight) {

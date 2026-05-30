@@ -660,7 +660,7 @@ export default class GameScene extends Phaser.Scene {
       this.totalMoney = MONEY.INITIAL;
       this.triggerAlarm();
     } else {
-      this.totalMoney *= 2;
+      this.totalMoney = Math.ceil(this.totalMoney * 1.5);
     }
 
     // ── 视觉反馈 ──
@@ -1050,7 +1050,7 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.fadeOut(600, 0, 0, 0);
       this.time.delayedCall(700, () => {
         const moneyIfOneLess = this.bagsCollected > 1
-          ? this.totalMoney / 2
+          ? Math.ceil(this.totalMoney / 1.5)
           : 0;
         this.scene.start('ResultScene', {
           success: false,

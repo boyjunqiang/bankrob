@@ -245,7 +245,7 @@ export default class GameScene extends Phaser.Scene {
         labelText = `x${pos.multiplier}`;
       } else if (pos.amount) {
         bag.amount = pos.amount;
-        labelText = `+$${pos.amount}`;
+        labelText = `+${pos.amount}`;
       }
 
       // 添加印在钱袋上的文字 (小号，直接贴在袋子上)
@@ -870,12 +870,16 @@ export default class GameScene extends Phaser.Scene {
     // ── 视觉反馈 ──
     this.updateMoneyDisplay();
     if (gained > 0) {
-      this.showMoneyPopup(bag.x, bag.y - 20, this.formatMoney(gained).replace('$', '+$'));
+      if (bag.amount) {
+        this.showMoneyPopup(bag.x, bag.y - 20, `+${gained}`);
+      } else {
+        this.showMoneyPopup(bag.x, bag.y - 20, this.formatMoney(gained).replace('$', '+$'));
+      }
     } else {
       if (bag.amount) {
-        this.showMoneyPopup(bag.x, bag.y - 20, `+$${bag.amount}`);
+        this.showMoneyPopup(bag.x, bag.y - 20, `+${bag.amount}`);
       } else {
-        this.showMoneyPopup(bag.x, bag.y - 20, `+$0`);
+        this.showMoneyPopup(bag.x, bag.y - 20, `+0`);
       }
     }
 

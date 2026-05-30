@@ -118,10 +118,15 @@ export default class BootScene extends Phaser.Scene {
     for (let i = 0; i < 7; i++) {
       this.load.image(`police_car_${i}`, `assets/police_car_${i}.png`);
     }
+
+    // 显式触发自定义像素字体加载，确保浏览器立即开始下载
+    if (document.fonts) {
+      document.fonts.load('12px "Zpix"');
+      document.fonts.load('12px "Press Start 2P"');
+    }
   }
 
   create() {
-    // 设置最大等待超时时间为 600 毫秒，超时后强制进入游戏，避免因为 Google Fonts 网络慢导致卡在 98% / 100% 进度条
     let fontLoaded = false;
     const startGame = () => {
       if (fontLoaded) return;
@@ -131,15 +136,27 @@ export default class BootScene extends Phaser.Scene {
       this.scene.start('MenuScene');
     };
 
-    // 正常字体加载完回调
-    document.fonts.ready.then(() => {
+    // 检查 Zpix 像素字体是否已经加载完毕
+    if (document.fonts && document.fonts.check('12px "Zpix"')) {
+      console.log('Zpix font already loaded, starting game...');
       startGame();
-    });
+    } else {
+      console.log('Zpix font not loaded yet, waiting...');
+      // 正常字体加载完回调
+      document.fonts.ready.then(() => {
+        console.log('All fonts loaded, starting game...');
+        startGame();
+      }).catch(err => {
+        console.error('Error waiting for fonts:', err);
+        startGame();
+      });
 
-    // 600ms 超时兜底，确保秒开
-    this.time.delayedCall(600, () => {
-      startGame();
-    });
+      // 3000ms 超时兜底，给 965KB 的本地中文字体足够的时间下载，避免因超时过短（如 600ms）导致降级为系统默认字体
+      this.time.delayedCall(3000, () => {
+        console.warn('Font load timed out after 3s, starting game with fallback fonts...');
+        startGame();
+      });
+    }
   }
 
   createAnimations() {

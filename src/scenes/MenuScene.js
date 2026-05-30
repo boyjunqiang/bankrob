@@ -67,6 +67,12 @@ export default class MenuScene extends Phaser.Scene {
         video.video.muted = false;
         video.video.volume = 1;
       }
+      
+      // 强制全屏（如果识别为手机）
+      const isMobile = this.sys.game.device.os.android || this.sys.game.device.os.iOS || this.sys.game.device.os.iPhone || this.sys.game.device.os.iPad;
+      if (isMobile && !this.scale.isFullscreen) {
+        this.scale.startFullscreen();
+      }
     });
 
     // ── 游戏标题 (带阴影) ──

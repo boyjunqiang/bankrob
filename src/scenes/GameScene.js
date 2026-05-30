@@ -945,8 +945,12 @@ export default class GameScene extends Phaser.Scene {
     for (let i = 0; i < maxLength; i++) {
       morseHintStr += MORSE_CODE[this.safePassword[i]] + '\n';
     }
-    const hintText = this.add.text(cx, 180, morseHintStr, {
-      fontFamily: 'monospace', fontSize: maxLength === 5 ? '18px' : '24px', color: '#ffffff', align: 'center', lineSpacing: 10
+    const hintY = maxLength === 5 ? 190 : 180;
+    const hintText = this.add.text(cx, hintY, morseHintStr, {
+      fontFamily: 'monospace', 
+      fontSize: maxLength === 5 ? '16px' : '24px', 
+      color: '#ffffff', align: 'center', 
+      lineSpacing: maxLength === 5 ? 5 : 10
     }).setOrigin(0.5);
     
     const underscores = '_'.repeat(maxLength);
@@ -954,7 +958,8 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: '"Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
     }).setOrigin(0.5);
     
-    const delBtn = this.add.text(cx + 90, 280, '[删]', {
+    const delBtnX = cx + (maxLength === 5 ? 130 : 90);
+    const delBtn = this.add.text(delBtnX, 280, '[删]', {
       fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     

@@ -21,6 +21,15 @@ export default class MenuScene extends Phaser.Scene {
 
     // ── 背景视频 ──
     const video = this.add.video(cx, cy, 'homeVideo');
+    
+    // 防止手机浏览器（特别是 iOS）双击屏幕时把视频弹出到原生全屏播放器
+    if (video.video) {
+      video.video.setAttribute('playsinline', 'true');
+      video.video.setAttribute('webkit-playsinline', 'true');
+      video.video.disablePictureInPicture = true;
+      video.video.style.pointerEvents = 'none';
+    }
+
     video.setMute(true); // 先静音，确保自动播放不被浏览器阻止
     video.play(true); // loop
 

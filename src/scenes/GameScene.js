@@ -257,7 +257,7 @@ export default class GameScene extends Phaser.Scene {
       // 添加印在钱袋上的文字 (小号，直接贴在袋子上)
       const label = this.add.text(pos.x, pos.y + 12, labelText, {
         fontFamily: '"Zpix", "Press Start 2P", monospace',
-        fontSize: '10px',
+        fontSize: '12px',
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 3
@@ -316,7 +316,7 @@ export default class GameScene extends Phaser.Scene {
 
       const label = this.add.text(pos.x, pos.y - targetH * 0.5 + 15, multiplierText, {
         fontFamily: '"Zpix", "Press Start 2P", monospace',
-        fontSize: '20px',
+        fontSize: '24px',
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4

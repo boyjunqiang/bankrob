@@ -433,26 +433,21 @@ export default class ResultScene extends Phaser.Scene {
   // ==================================================================
   showRetryAndShareButtons(cx, retryY, shareY) {
     // 1. Retry Button — use uniform scale to preserve aspect ratio
-    const retryBtn = this.add.image(cx, retryY, 'btnRetry')
-      .setDepth(15)
-      .setAlpha(0)
-      .setInteractive({ useHandCursor: true });
+    const rY = GAME.HEIGHT - 210;
+    const sY = GAME.HEIGHT - 140;
 
-    const retryTargetW = 300;
-    const retryScale = retryTargetW / retryBtn.width;
-    retryBtn.setScale(retryScale);
+    const retryScale = 220 / 300;
+    const shareScale = 160 / 238;
 
-    // 2. Share Button
-    const shareBtn = this.add.image(cx, shareY, 'btnShare')
-      .setDepth(15)
-      .setAlpha(0)
-      .setInteractive({ useHandCursor: true });
+    const retryBtn = this.add.image(cx, rY, 'btnRetry')
+      .setScale(retryScale)
+      .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
 
-    const shareTargetW = 200;
-    const shareScale = shareTargetW / shareBtn.width;
-    shareBtn.setScale(shareScale);
+    const shareBtn = this.add.image(cx, sY, 'btnShare')
+      .setScale(shareScale)
+      .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
 
-    const boardBtn = this.add.text(cx, shareY + 50, '🏆 查看全球排行榜', {
+    const boardBtn = this.add.text(cx, sY + 60, '🏆 查看全球排行榜', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
       color: '#ffd700',
@@ -511,7 +506,7 @@ export default class ResultScene extends Phaser.Scene {
           const margin = Math.round(this.result.margin * 10) / 10;
           const shareText = `🏦 一分钟劫匪 🏦\n💰 抢到 ${this.formatMoney(this.result.money)}\n🎒 捡了 ${this.result.bags} 袋\n🚔 警察差 ${margin}秒 才到\n你能比我多抢吗？`;
           navigator.clipboard?.writeText(shareText).then(() => {
-            const copiedText = this.add.text(cx, shareY + 40, '✅ 战绩已复制到剪贴板！', {
+            const copiedText = this.add.text(cx, sY + 40, '✅ 战绩已复制到剪贴板！', {
               fontFamily: '"Press Start 2P", monospace',
               fontSize: '9px',
               color: '#66ff66',
@@ -520,7 +515,7 @@ export default class ResultScene extends Phaser.Scene {
             }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(1500, () => copiedText.destroy());
           }).catch(() => {
-            const copiedText = this.add.text(cx, shareY + 40, '❌ 复制失败，请重试', {
+            const copiedText = this.add.text(cx, sY + 40, '❌ 复制失败，请重试', {
               fontFamily: '"Press Start 2P", monospace',
               fontSize: '9px',
               color: '#ff4444',
@@ -535,16 +530,14 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   showRetryButton(cx, y) {
-    const ypos = y - 40;
-    const retryBtn = this.add.image(cx, ypos + 26, 'btnRetry')
-      .setDepth(15)
-      .setAlpha(0)
-      .setInteractive({ useHandCursor: true });
+    const ypos = GAME.HEIGHT / 2 + 130;
+    const retryScale = 200 / 300;
 
-    const retryScale = 300 / retryBtn.width;
-    retryBtn.setScale(retryScale);
+    const retryBtn = this.add.image(cx, ypos, 'btnRetry')
+      .setScale(retryScale)
+      .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
     
-    const boardBtn = this.add.text(cx, ypos + 80, '🏆 查看全球排行榜', {
+    const boardBtn = this.add.text(cx, ypos + 70, '🏆 查看全球排行榜', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '14px',
       color: '#ffd700',

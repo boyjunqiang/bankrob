@@ -4,7 +4,7 @@ import {
   BANK, PARTNER_LINES, ROBBER_LINES, ROBBER_QUIPS,
 } from '../config/gameConfig.js';
 
-const BAG_SCALE = 1.5;
+const BAG_SCALE = 1.2;
 const PARTNER_SCALE = 42 / 104;
 
 // 主角显示尺寸

@@ -199,7 +199,7 @@ export default class MenuScene extends Phaser.Scene {
     // ── 最高分 ──
     const highScore = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
     if (highScore > 0) {
-      this.add.text(cx, 640, `🏆 最高记录: $${highScore.toLocaleString()}`, {
+      this.add.text(cx, 640, `🏆 最高记录: ${this.formatMoney(highScore)}`, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '12px',
         color: '#ffd700',
@@ -241,5 +241,20 @@ export default class MenuScene extends Phaser.Scene {
 
     // 淡入
     this.cameras.main.fadeIn(400);
+  }
+  formatMoney(n) {
+    if (n >= 1e48) return `$${(n / 1e48).toFixed(1)}极`;
+    if (n >= 1e44) return `$${(n / 1e44).toFixed(1)}载`;
+    if (n >= 1e40) return `$${(n / 1e40).toFixed(1)}正`;
+    if (n >= 1e36) return `$${(n / 1e36).toFixed(1)}涧`;
+    if (n >= 1e32) return `$${(n / 1e32).toFixed(1)}沟`;
+    if (n >= 1e28) return `$${(n / 1e28).toFixed(1)}穰`;
+    if (n >= 1e24) return `$${(n / 1e24).toFixed(1)}秭`;
+    if (n >= 1e20) return `$${(n / 1e20).toFixed(1)}垓`;
+    if (n >= 1e16) return `$${(n / 1e16).toFixed(1)}京`;
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}万亿`;
+    if (n >= 1e8)  return `$${(n / 1e8).toFixed(1)}亿`;
+    if (n >= 1e4)  return `$${(n / 1e4).toFixed(1)}万`;
+    return `$${n.toLocaleString()}`;
   }
 }

@@ -44,10 +44,31 @@ export default class GameScene extends Phaser.Scene {
     this.createPartnerChar();
     this.createTellers();
     this.createMoneyBags();
+    this.createSafes();
     this.createRobber();
     this.createHUD();
     this.createEscapeButton();
     this.createPromptText();
+
+    // 自由寻路点击监听
+    this.input.on('pointerdown', (pointer, currentlyOver) => {
+      // 如果点击在特定对象上（有交互的元素），或者在剧情/结束/开锁中，则不处理
+      if (currentlyOver.length > 0 || this.introPlaying || this.gameEnded || this.isCracking) return;
+      
+      this.robberTarget = { x: pointer.x, y: pointer.y, isFreeMove: true };
+      this.isEscaping = false;
+
+      // 初始化音频（需在用户交互中）
+      if (!this.audioCtx) {
+        try { this.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+      }
+
+      this.robberBobTween.resume();
+      
+      if (this.promptText.alpha > 0) {
+        this.tweens.add({ targets: this.promptText, alpha: 0, duration: 200 });
+      }
+    });
 
     // 开始开场动画
     this.playIntro();
@@ -146,36 +167,61 @@ export default class GameScene extends Phaser.Scene {
 
   createMoneyBags() {
     this.moneyBags = [];
-    const count = Phaser.Math.Between(BAGS.MIN_COUNT, BAGS.MAX_COUNT);
-    const placed = [];
-    let attempts = 0;
+    const positions = [
+      // 柜台附近 (x3) - 10个
+      { x: 90, y: 210, multiplier: 3 },
+      { x: 150, y: 210, multiplier: 3 },
+      { x: 225, y: 210, multiplier: 3 },
+      { x: 300, y: 210, multiplier: 3 },
+      { x: 360, y: 210, multiplier: 3 },
+      { x: 120, y: 240, multiplier: 3 },
+      { x: 180, y: 240, multiplier: 3 },
+      { x: 260, y: 240, multiplier: 3 },
+      { x: 330, y: 240, multiplier: 3 },
+      { x: 380, y: 240, multiplier: 3 },
+      // 柜台到中央之间 (x2.5) - 10个
+      { x: 100, y: 280, multiplier: 2.5 },
+      { x: 160, y: 280, multiplier: 2.5 },
+      { x: 225, y: 280, multiplier: 2.5 },
+      { x: 290, y: 280, multiplier: 2.5 },
+      { x: 350, y: 280, multiplier: 2.5 },
+      { x: 130, y: 320, multiplier: 2.5 },
+      { x: 190, y: 320, multiplier: 2.5 },
+      { x: 260, y: 320, multiplier: 2.5 },
+      { x: 320, y: 320, multiplier: 2.5 },
+      { x: 370, y: 320, multiplier: 2.5 },
+      // 中央保险箱周围 (x2) - 12个
+      { x: 100, y: 380, multiplier: 2 },
+      { x: 140, y: 380, multiplier: 2 },
+      { x: 120, y: 430, multiplier: 2 },
+      { x: 160, y: 430, multiplier: 2 },
+      { x: 140, y: 480, multiplier: 2 },
+      { x: 350, y: 380, multiplier: 2 },
+      { x: 310, y: 380, multiplier: 2 },
+      { x: 330, y: 430, multiplier: 2 },
+      { x: 290, y: 430, multiplier: 2 },
+      { x: 310, y: 480, multiplier: 2 },
+      { x: 225, y: 350, multiplier: 2 },
+      { x: 225, y: 480, multiplier: 2 },
+      // (x1.5) - 8个
+      { x: 90, y: 520, multiplier: 1.5 },
+      { x: 140, y: 540, multiplier: 1.5 },
+      { x: 190, y: 520, multiplier: 1.5 },
+      { x: 260, y: 540, multiplier: 1.5 },
+      { x: 310, y: 520, multiplier: 1.5 },
+      { x: 360, y: 540, multiplier: 1.5 },
+      { x: 120, y: 570, multiplier: 1.5 },
+      { x: 330, y: 570, multiplier: 1.5 },
+      // 靠近大门 (x1.2 / x1.1) - 6个
+      { x: 160, y: 600, multiplier: 1.2 },
+      { x: 225, y: 600, multiplier: 1.2 },
+      { x: 290, y: 600, multiplier: 1.2 },
+      { x: 130, y: 620, multiplier: 1.1 },
+      { x: 320, y: 620, multiplier: 1.1 },
+      { x: 225, y: 630, multiplier: 1.1 },
+    ];
 
-    while (placed.length < count && attempts < 1500) {
-      const x = Phaser.Math.Between(BAGS.AREA.minX, BAGS.AREA.maxX);
-      const y = Phaser.Math.Between(BAGS.AREA.minY, BAGS.AREA.maxY);
-      let ok = true;
-
-      // 最小距离检测
-      for (const p of placed) {
-        if (Phaser.Math.Distance.Between(x, y, p.x, p.y) < BAGS.MIN_DISTANCE) {
-          ok = false;
-          break;
-        }
-      }
-      // 避开柱子
-      for (const [px, py] of [[55, 230], [335, 230], [55, 440], [335, 440]]) {
-        if (Phaser.Math.Distance.Between(x, y, px, py) < 30) {
-          ok = false;
-          break;
-        }
-      }
-
-      if (ok) placed.push({ x, y });
-      attempts++;
-    }
-
-    placed.forEach(pos => {
-      // 钱袋影子 (黑色的半透明椭圆，大小调为 20x8 更为显眼，渲染在 depth 7)
+    positions.forEach(pos => {
       const shadow = this.add.graphics()
         .setDepth(7)
         .setAlpha(0);
@@ -190,10 +236,114 @@ export default class GameScene extends Phaser.Scene {
         .setAlpha(0)
         .setInteractive({ useHandCursor: true, pixelPerfect: false });
 
-      bag.shadow = shadow; // 关联影子到钱袋对象
+      if (pos.multiplier >= 3) {
+        bag.setTint(0xffcc00); // 金色
+      } else if (pos.multiplier >= 2.5) {
+        bag.setTint(0x44ff44); // 绿色
+      } else if (pos.multiplier >= 2) {
+        // 普通颜色 (无 tint)
+      } else {
+        bag.setTint(0x888888); // 灰色
+      }
+
+      // 添加印在钱袋上的文字 (小号，直接贴在袋子上)
+      const label = this.add.text(pos.x, pos.y + 12, `x${pos.multiplier}`, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '10px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3
+      }).setOrigin(0.5).setDepth(9).setAlpha(0).setScale(0); // 初始隐藏
+
+      bag.shadow = shadow;
+      bag.label = label;
+      bag.multiplier = pos.multiplier;
       bag.collected = false;
       bag.on('pointerdown', () => this.onBagClicked(bag));
       this.moneyBags.push(bag);
+    });
+  }
+
+  createSafes() {
+    this.safes = [];
+    const positions = [
+      { x: 75, y: 190 }, // Top Left
+      { x: 375, y: 190 }, // Top Right
+      { x: 75, y: 570 }, // Bottom Left
+      { x: 375, y: 570 }, // Bottom Right
+      { x: 225, y: 380 }, // Center
+    ];
+
+    positions.forEach((pos, index) => {
+      // 只有中间（第 5 个元素，索引 4）是绿色，其余角落是黄色
+      const type = index === 4 ? 'green' : 'yellow';
+      
+      const shadow = this.add.graphics().setDepth(7);
+      shadow.fillStyle(0x000000, 0.4);
+      shadow.fillEllipse(0, 0, 30, 10);
+      shadow.x = pos.x;
+      shadow.y = pos.y + 15;
+
+      const safe = this.add.image(pos.x, pos.y, 'safe_bg')
+        .setDepth(8)
+        .setScale(0.08)
+        .setInteractive({ useHandCursor: true });
+
+      // 着色与特效
+      if (type === 'yellow') {
+        safe.setTint(0xffcc00); // 更浓郁的黄色
+
+        // 增加发光特效：在下方叠加一个大一圈的 Additivie 混合模式图片并做脉冲动画
+        const glow = this.add.image(pos.x, pos.y, 'safe_bg')
+          .setDepth(7.5)
+          .setScale(0.09)
+          .setTint(0xffff00)
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setAlpha(0.7);
+
+        this.tweens.add({
+          targets: glow,
+          alpha: 0.2,
+          scale: 0.10,
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        safe.glow = glow;
+      } else {
+        safe.setTint(0x00ff00); // 更明显的纯绿色
+      }
+
+      safe.safeType = type;
+      safe.shadow = shadow;
+      safe.isSafe = true;
+      safe.collected = false;
+
+      const multiplierText = type === 'green' ? 'x10' : 'x5';
+      const color = type === 'green' ? '#00ff00' : '#ffcc00';
+
+      const label = this.add.text(pos.x, pos.y - 45, multiplierText, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: '18px',
+        color: color,
+        stroke: '#000000',
+        strokeThickness: 4
+      }).setOrigin(0.5).setDepth(9);
+
+      this.tweens.add({
+        targets: label,
+        y: pos.y - 55,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      safe.label = label;
+
+      safe.on('pointerdown', () => this.onSafeClicked(safe));
+      this.safes.push(safe);
     });
   }
 
@@ -456,6 +606,22 @@ export default class GameScene extends Phaser.Scene {
                 ease: 'Bounce.easeOut',
               });
             }
+
+            // 贴在钱袋上的文字也同步飞出
+            if (bag.label) {
+              bag.label.x = bag.x;
+              bag.label.y = bag.y;
+              this.tweens.add({
+                targets: bag.label,
+                x: targetX,
+                y: targetY + 12,
+                alpha: 1,
+                scale: 1,
+                duration: 350,
+                delay: i * 7,
+                ease: 'Bounce.easeOut',
+              });
+            }
           });
         },
       },
@@ -486,12 +652,18 @@ export default class GameScene extends Phaser.Scene {
           this.robberyMusic.play();
 
           // 显示提示
-          this.promptText.setText('👆 点击钱袋开始抢钱！');
+          this.promptText.setText('👆 警察要来了，快抢！');
           this.tweens.add({
             targets: this.promptText,
             alpha: { from: 0, to: 1 },
             duration: 400,
           });
+
+          // 自动触发警报和倒计时
+          if (this.totalMoney === 0) {
+            this.totalMoney = MONEY.INITIAL;
+          }
+          this.triggerAlarm();
 
           // 钱袋发光呼吸
           this.moneyBags.forEach((bag, i) => {
@@ -514,8 +686,25 @@ export default class GameScene extends Phaser.Scene {
   // ==================================================================
   //  玩家交互
   // ==================================================================
+  onSafeClicked(safe) {
+    if (this.introPlaying || this.gameEnded || safe.collected || this.isCracking) return;
+    
+    // 初始化音频
+    if (!this.audioCtx) {
+      try { this.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+
+    this.robberTarget = safe;
+    this.isEscaping = false;
+    this.robberBobTween.resume();
+    
+    if (this.promptText.alpha > 0) {
+      this.tweens.add({ targets: this.promptText, alpha: 0, duration: 200 });
+    }
+  }
+
   onBagClicked(bag) {
-    if (this.introPlaying || this.gameEnded || bag.collected) return;
+    if (this.introPlaying || this.gameEnded || bag.collected || this.isCracking) return;
 
     // 初始化音频（需在用户交互中）
     if (!this.audioCtx) {
@@ -537,7 +726,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   startEscape() {
-    if (this.gameEnded) return;
+    if (this.gameEnded || this.isCracking) return;
 
     // 初始化音频
     if (!this.audioCtx) {
@@ -576,6 +765,10 @@ export default class GameScene extends Phaser.Scene {
 
       if (target === this.car) {
         this.onReachedCar();
+      } else if (target.isSafe) {
+        this.onReachedSafe(target);
+      } else if (target.isFreeMove) {
+        // 自由移动到达目标，什么都不用做
       } else {
         this.onReachedBag(target);
       }
@@ -655,12 +848,12 @@ export default class GameScene extends Phaser.Scene {
     bag.collected = true;
     this.bagsCollected++;
 
-    // 第一个钱袋 → 触发警铃
-    if (this.bagsCollected === 1) {
+    if (this.bagsCollected === 1 && this.totalMoney === MONEY.INITIAL) {
+      // 如果还没拿过其他钱（比如解开过保险箱），那第一个袋子就保持初始金额 $1
       this.totalMoney = MONEY.INITIAL;
-      this.triggerAlarm();
     } else {
-      this.totalMoney = Math.round(this.totalMoney * 1.5);
+      // 正常乘以专属倍数，确保至少涨1块钱
+      this.totalMoney = Math.max(this.totalMoney + 1, Math.round(this.totalMoney * bag.multiplier));
     }
 
     // ── 视觉反馈 ──
@@ -687,13 +880,23 @@ export default class GameScene extends Phaser.Scene {
       });
     }
 
-    // 弹出数字
-    this.showMoneyPopup(bag.x, bag.y - 10);
+    // 印在钱袋上的文字同步消失并销毁
+    if (bag.label) {
+      this.tweens.add({
+        targets: bag.label,
+        scale: 0,
+        alpha: 0,
+        y: bag.label.y - 20,
+        duration: 250,
+        ease: 'Back.easeIn',
+        onComplete: () => bag.label.destroy(),
+      });
+    }
 
-    // 更新 HUD
+    // ── 视觉反馈 ──
     this.updateMoneyDisplay();
+    this.showMoneyPopup(bag.x, bag.y - 20, `x${bag.multiplier} 倍!`);
 
-    // 金币粒子
     this.spawnGoldParticles(bag.x, bag.y);
 
     // 音效
@@ -710,6 +913,171 @@ export default class GameScene extends Phaser.Scene {
     if (remaining === 0) {
       this.showBubble(this.robber, '全捡完了！！快上车！', 2000);
     }
+  }
+
+  onReachedSafe(safe) {
+    if (safe.collected || this.isCracking) return;
+    this.isCracking = true;
+    this.currentSafe = safe;
+    this.showSafeCrackingUI(safe);
+  }
+
+  showSafeCrackingUI(safe) {
+    this.safePassword = '';
+    for (let i = 0; i < 3; i++) {
+      this.safePassword += Phaser.Math.Between(1, 9).toString();
+    }
+    this.safeInput = '';
+
+    const MORSE_CODE = {
+      '1': '.----', '2': '..---', '3': '...--',
+      '4': '....-', '5': '.....', '6': '-....',
+      '7': '--...', '8': '---..', '9': '----.'
+    };
+
+    const cx = GAME.WIDTH / 2;
+    const cy = GAME.HEIGHT / 2;
+
+    this.safeUIContainer = this.add.container(0, 0).setDepth(200);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.85);
+    overlay.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
+    this.safeUIContainer.add(overlay);
+
+    const titleText = this.add.text(cx, 100, '🔒 破解保险箱', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
+    }).setOrigin(0.5);
+    
+    let morseHintStr = '';
+    for (let i = 0; i < 3; i++) {
+      morseHintStr += MORSE_CODE[this.safePassword[i]] + '\n';
+    }
+    const hintText = this.add.text(cx, 180, morseHintStr, {
+      fontFamily: 'monospace', fontSize: '24px', color: '#ffffff', align: 'center', lineSpacing: 10
+    }).setOrigin(0.5);
+    
+    this.safeInputDisplay = this.add.text(cx, 280, '___', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
+    }).setOrigin(0.5);
+    
+    this.safeUIContainer.add([titleText, hintText, this.safeInputDisplay]);
+
+    const padStartX = cx - 70;
+    const padStartY = 360;
+    const padSpacing = 70;
+
+    for (let i = 1; i <= 9; i++) {
+      const row = Math.floor((i - 1) / 3);
+      const col = (i - 1) % 3;
+      const btnX = padStartX + col * padSpacing;
+      const btnY = padStartY + row * padSpacing;
+
+      const btnBg = this.add.graphics();
+      btnBg.fillStyle(0x333333, 1);
+      btnBg.lineStyle(2, 0xaaaaaa);
+      btnBg.fillRoundedRect(btnX - 25, btnY - 25, 50, 50, 8);
+      btnBg.strokeRoundedRect(btnX - 25, btnY - 25, 50, 50, 8);
+
+      const btnText = this.add.text(btnX, btnY, i.toString(), {
+        fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffffff'
+      }).setOrigin(0.5);
+
+      const hitArea = this.add.rectangle(btnX, btnY, 50, 50, 0x000000, 0).setInteractive({ useHandCursor: true });
+      hitArea.on('pointerdown', () => this.onSafeNumpadClick(i));
+      
+      this.safeUIContainer.add([btnBg, btnText, hitArea]);
+    }
+
+    const dictStartX = cx - 140;
+    const dictStartY = 580;
+    let dictStr1 = '';
+    let dictStr2 = '';
+    for (let i = 1; i <= 5; i++) dictStr1 += `${i}: ${MORSE_CODE[i]}\n`;
+    for (let i = 6; i <= 9; i++) dictStr2 += `${i}: ${MORSE_CODE[i]}\n`;
+    
+    const dictText1 = this.add.text(dictStartX, dictStartY, dictStr1, {
+      fontFamily: 'monospace', fontSize: '14px', color: '#aaaaaa', lineSpacing: 5
+    });
+    const dictText2 = this.add.text(dictStartX + 140, dictStartY, dictStr2, {
+      fontFamily: 'monospace', fontSize: '14px', color: '#aaaaaa', lineSpacing: 5
+    });
+    
+    const closeBtn = this.add.text(cx, 720, '[ 放弃破解 ]', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.closeSafeCrackingUI(false));
+    
+    this.safeUIContainer.add([dictText1, dictText2, closeBtn]);
+  }
+
+  onSafeNumpadClick(num) {
+    if (this.safeInput.length < 3) {
+      this.safeInput += num.toString();
+      let displayStr = this.safeInput;
+      while (displayStr.length < 3) displayStr += '_';
+      this.safeInputDisplay.setText(displayStr);
+
+      if (this.safeInput.length === 3) {
+        this.time.delayedCall(200, () => this.checkSafePassword());
+      }
+    }
+  }
+
+  checkSafePassword() {
+    if (this.safeInput === this.safePassword) {
+      this.closeSafeCrackingUI(true);
+    } else {
+      this.cameras.main.shake(200, 0.01);
+      this.safeInputDisplay.setText('___');
+      this.safeInputDisplay.setColor('#ff0000');
+      this.time.delayedCall(300, () => {
+        this.safeInput = '';
+        this.safeInputDisplay.setColor('#00ff00');
+      });
+    }
+  }
+
+  closeSafeCrackingUI(success) {
+    if (this.safeUIContainer) {
+      this.safeUIContainer.destroy();
+      this.safeUIContainer = null;
+    }
+    this.isCracking = false;
+
+    if (success && this.currentSafe) {
+      const safe = this.currentSafe;
+      safe.collected = true;
+      
+      if (safe.safeType === 'yellow') {
+        this.totalMoney *= 5;
+        this.showMoneyPopup(safe.x, safe.y - 20, 'x5 倍!');
+      } else if (safe.safeType === 'green') {
+        this.totalMoney *= 10;
+        this.showMoneyPopup(safe.x, safe.y - 20, 'x10 倍!');
+      }
+
+      this.updateMoneyDisplay();
+      this.spawnGoldParticles(safe.x, safe.y);
+      this.playCollectSound();
+      this.vibrateDevice(50);
+
+      this.tweens.add({
+        targets: safe, scale: 0, alpha: 0, y: safe.y - 20, duration: 250, ease: 'Back.easeIn',
+        onComplete: () => safe.destroy(),
+      });
+      if (safe.label) {
+        this.tweens.add({ targets: safe.label, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.label.destroy() });
+      }
+      if (safe.glow) {
+        this.tweens.add({ targets: safe.glow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.glow.destroy() });
+      }
+      if (safe.shadow) {
+        this.tweens.add({ targets: safe.shadow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.shadow.destroy() });
+      }
+    }
+    this.currentSafe = null;
   }
 
   triggerAlarm() {
@@ -1093,45 +1461,26 @@ export default class GameScene extends Phaser.Scene {
     return `$${n.toLocaleString()}`;
   }
 
-  showMoneyPopup(x, y) {
-    const txt = this.add.text(x, y, this.formatMoney(this.totalMoney), {
+  showMoneyPopup(x, y, customText) {
+    if (!customText) return;
+
+    const txt = this.add.text(x, y, customText, {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: '18px',
-      color: '#ffee44',
-      stroke: '#000',
+      fontSize: '24px',
+      color: '#00ff00',
+      stroke: '#000000',
       strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(120);
+    }).setOrigin(0.5).setDepth(150);
 
     this.tweens.add({
       targets: txt,
-      y: y - 50,
+      y: y - 80,
       alpha: { from: 1, to: 0 },
-      scale: { from: 1.2, to: 0.6 },
-      duration: 800,
-      ease: 'Quad.easeOut',
+      scale: { from: 0.5, to: 1.2 },
+      duration: 900,
+      ease: 'Cubic.easeOut',
       onComplete: () => txt.destroy(),
     });
-
-    // 翻倍指示 (第2袋以后)
-    if (this.bagsCollected > 1) {
-      const multiplierText = this.add.text(x + 50, y + 5, 'x1.5!', {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: '14px',
-        color: '#ff4444',
-        stroke: '#000',
-        strokeThickness: 4,
-      }).setOrigin(0.5).setDepth(120);
-
-      this.tweens.add({
-        targets: multiplierText,
-        y: y - 30,
-        alpha: { from: 1, to: 0 },
-        scale: { from: 1.5, to: 0.5 },
-        duration: 600,
-        delay: 100,
-        onComplete: () => multiplierText.destroy(),
-      });
-    }
   }
 
   // ==================================================================

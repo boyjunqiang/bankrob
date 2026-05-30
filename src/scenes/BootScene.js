@@ -9,6 +9,42 @@ export default class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    const progressBox = this.add.graphics();
+    const progressBar = this.add.graphics();
+    
+    progressBox.fillStyle(0x222222, 0.8);
+    progressBox.fillRect(width / 2 - 160, height / 2 - 25, 320, 50);
+
+    const loadingText = this.add.text(width / 2, height / 2 - 50, 'Loading...', {
+      fontFamily: 'monospace', // fallback in case Press Start 2P isn't ready
+      fontSize: '20px',
+      fill: '#ffffff'
+    }).setOrigin(0.5);
+
+    const percentText = this.add.text(width / 2, height / 2, '0%', {
+      fontFamily: 'monospace',
+      fontSize: '18px',
+      fill: '#000000'
+    }).setOrigin(0.5);
+
+    this.load.on('progress', (value) => {
+      progressBar.clear();
+      progressBar.fillStyle(0xffd700, 1);
+      progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30);
+      percentText.setText(parseInt(value * 100) + '%');
+    });
+
+    this.load.on('complete', () => {
+      progressBar.destroy();
+      progressBox.destroy();
+      loadingText.destroy();
+      percentText.destroy();
+    });
+
+
     this.load.video('homeVideo', 'assets/首页视频.mp4');
     this.load.audio('homeAudio', 'assets/启动页.mp3');
     this.load.audio('menuSiren', 'assets/menu_siren.mp3');
@@ -17,6 +53,7 @@ export default class BootScene extends Phaser.Scene {
 
     // 加载外部新资源
     this.load.image('gameBg', 'assets/游戏主画面.webp');
+    this.load.image('safe_bg', 'assets/safe.png');
     this.load.image('moneybag', 'assets/钱袋.png');
     this.load.image('car', 'assets/汽车.png');
     this.load.image('gameBg2', 'assets/游戏主画面2.png');

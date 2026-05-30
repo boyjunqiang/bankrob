@@ -228,16 +228,19 @@ export default class GameScene extends Phaser.Scene {
 
     positions.forEach(pos => {
       const shadow = this.add.graphics()
-        .setDepth(7)
-        .setAlpha(0);
-      shadow.fillStyle(0x000000, 0.32);
-      shadow.fillEllipse(0, 0, 20, 8);
-      shadow.x = pos.x;
-      shadow.y = pos.y + 10;
+        .setDepth(2)
+        .fillStyle(0x000000, 0.4)
+        .fillEllipse(pos.x, pos.y + 12, 18, 6);
 
-      const bag = this.add.image(pos.x, pos.y, 'moneybag')
+      let bagTexture = 'bag_yellow';
+      if (pos.amount === 20) bagTexture = 'bag_brown';
+      else if (pos.multiplier === 2) bagTexture = 'bag_dark';
+      else if (pos.multiplier === 2.5) bagTexture = 'bag_green';
+      else if (pos.multiplier === 3) bagTexture = 'bag_gold';
+
+      const bag = this.add.image(pos.x, pos.y, bagTexture)
         .setDepth(8)
-        .setScale(0)        // 开始时 scale 设为 0 (配合弹出动画)
+        .setScale(0)
         .setAlpha(0)
         .setInteractive({ useHandCursor: true, pixelPerfect: false });
 
@@ -296,7 +299,7 @@ export default class GameScene extends Phaser.Scene {
         .setDepth(8)
         .setInteractive({ useHandCursor: true });
 
-      const targetW = pos.mult === 25 ? 135 : 63;
+      const targetW = pos.mult === 25 ? 95 : 44;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);
 
@@ -1128,21 +1131,14 @@ export default class GameScene extends Phaser.Scene {
 
     const dialContainer = this.add.container(cx, cy);
     
-    // Draw wheel
-    const dialBg = this.add.graphics();
-    dialBg.lineStyle(8, 0xaaaaaa);
-    dialBg.strokeCircle(0, 0, 100);
-    dialBg.fillStyle(0x333333, 1);
-    dialBg.fillCircle(0, 0, 96);
+    // 换成新的把手图片
+    const handleImg = this.add.image(0, 0, 'handle');
     
-    // Draw indicator line
-    const dialLine = this.add.graphics();
-    dialLine.lineStyle(4, 0x00ffff);
-    dialLine.moveTo(0, 0);
-    dialLine.lineTo(0, -90);
-    dialLine.strokePath();
+    // 自动缩放把手以适应大小
+    const handleTargetW = 180;
+    handleImg.setScale(handleTargetW / handleImg.width);
     
-    dialContainer.add([dialBg, dialLine]);
+    dialContainer.add(handleImg);
 
     const hitArea = new Phaser.Geom.Circle(0, 0, 150);
     dialContainer.setInteractive(hitArea, Phaser.Geom.Circle.Contains);

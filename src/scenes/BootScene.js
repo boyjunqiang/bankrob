@@ -59,6 +59,12 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('safe_15', 'assets/15倍.png');
     this.load.image('safe_diamond', 'assets/转式保险箱.png');
     this.load.image('moneybag', 'assets/钱袋.png');
+    this.load.image('handle', 'assets/把手.png');
+    this.load.image('bag_brown', 'assets/棕色袋子.jpg');
+    this.load.image('bag_dark', 'assets/深色袋子.jpg');
+    this.load.image('bag_green', 'assets/绿色袋子.png');
+    this.load.image('bag_gold', 'assets/金色袋子.png');
+    this.load.image('bag_yellow', 'assets/黄色袋子.jpg');
     this.load.image('car', 'assets/汽车.png');
     this.load.image('gameBg2', 'assets/游戏主画面2.png');
     this.load.image('gameBg3', 'assets/游戏主画面3.png');

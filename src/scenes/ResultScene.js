@@ -13,7 +13,13 @@ export default class ResultScene extends Phaser.Scene {
     this.result = data;
   }
 
-  create() {
+  create(data) {
+    // 结算场景也铺满全屏
+    if (this.scale.scaleMode !== Phaser.Scale.ENVELOP) {
+      this.scale.scaleMode = Phaser.Scale.ENVELOP;
+      this.scale.updateScale();
+    }
+
     const cx = GAME.WIDTH / 2;
     this.cameras.main.setBackgroundColor('#08081a');
     this.cameras.main.fadeIn(500);

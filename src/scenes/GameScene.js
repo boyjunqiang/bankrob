@@ -36,6 +36,12 @@ export default class GameScene extends Phaser.Scene {
 
   /* ───────── 创建场景 ───────── */
   create() {
+    // 游戏场景：使用 ENVELOP 模式，等比铺满全屏，消除黑边（左右可能会稍微裁切）
+    if (this.scale.scaleMode !== Phaser.Scale.ENVELOP) {
+      this.scale.scaleMode = Phaser.Scale.ENVELOP;
+      this.scale.updateScale();
+    }
+
     // 初始化音频上下文（需用户交互后才可用）
     this.audioCtx = null;
 

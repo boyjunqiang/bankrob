@@ -10,6 +10,12 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    // 首页保持 FIT 模式（等比完整显示，不裁切，可能有黑边）
+    if (this.scale.scaleMode !== Phaser.Scale.FIT) {
+      this.scale.scaleMode = Phaser.Scale.FIT;
+      this.scale.updateScale();
+    }
+
     const cx = GAME.WIDTH / 2;
     const cy = GAME.HEIGHT / 2;
 

@@ -171,6 +171,12 @@ export default class MenuScene extends Phaser.Scene {
       if (!this.menuSiren.isPlaying) {
         this.menuSiren.play();
       }
+
+      if (this.sys.game.device.os.android || this.sys.game.device.os.iOS) {
+        if (!this.scale.isFullscreen) {
+          this.scale.startFullscreen();
+        }
+      }
       
       // 按下反馈
       this.tweens.add({

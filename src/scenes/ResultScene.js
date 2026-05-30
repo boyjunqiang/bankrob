@@ -82,11 +82,11 @@ export default class ResultScene extends Phaser.Scene {
     // ── Layout constants ──
     const HEADER_BOTTOM = 220;
     const MONEY_CARD_TOP = 225;
-    const MONEY_CARD_BOTTOM = 410;
-    const STATS_CARD_TOP = 420;
-    const STATS_CARD_BOTTOM = 615;
-    const RETRY_BTN_Y = 665;
-    const SHARE_BTN_Y = 735;
+    const MONEY_CARD_BOTTOM = 405;
+    const STATS_CARD_TOP = 415;
+    const STATS_CARD_BOTTOM = 600;
+    const RETRY_BTN_Y = 635;
+    const SHARE_BTN_Y = 695;
 
     const CARD_MARGIN = 25;
     const CARD_WIDTH = GAME.WIDTH - CARD_MARGIN * 2;
@@ -153,6 +153,20 @@ export default class ResultScene extends Phaser.Scene {
           this.time.delayedCall(revealDelay + 1800, () => {
             this.showRetryAndShareButtons(cx, RETRY_BTN_Y, SHARE_BTN_Y);
             this.updateHighScore(data.money);
+            
+            setTimeout(() => {
+              if (data.money > 0) {
+                let playerName = localStorage.getItem('bankrob_player_name');
+                if (!playerName) {
+                  playerName = prompt('🎉 抢劫成功！\n请输入你的大名上传全球排行榜：');
+                  if (playerName) localStorage.setItem('bankrob_player_name', playerName);
+                }
+                
+                if (playerName) {
+                  this.submitScoreAndShowRank(playerName, data.money, cx);
+                }
+              }
+            }, 800);
           });
         } else {
           this.time.delayedCall(100, checkReady);
@@ -437,8 +451,18 @@ export default class ResultScene extends Phaser.Scene {
     const shareScale = shareTargetW / shareBtn.width;
     shareBtn.setScale(shareScale);
 
+    const boardBtn = this.add.text(cx, shareY + 50, '🏆 查看全球排行榜', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#ffd700',
+      backgroundColor: '#333333',
+      padding: { x: 10, y: 10 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
+    
+    boardBtn.on('pointerdown', () => this.showLeaderboard(cx));
+
     this.tweens.add({
-      targets: [retryBtn, shareBtn],
+      targets: [retryBtn, shareBtn, boardBtn],
       alpha: 1,
       duration: 400,
     });
@@ -510,16 +534,27 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   showRetryButton(cx, y) {
-    const retryBtn = this.add.image(cx, y + 26, 'btnRetry')
+    const ypos = y - 40;
+    const retryBtn = this.add.image(cx, ypos + 26, 'btnRetry')
       .setDepth(15)
       .setAlpha(0)
       .setInteractive({ useHandCursor: true });
 
     const retryScale = 300 / retryBtn.width;
     retryBtn.setScale(retryScale);
+    
+    const boardBtn = this.add.text(cx, ypos + 80, '🏆 查看全球排行榜', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#ffd700',
+      backgroundColor: '#333333',
+      padding: { x: 10, y: 10 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
+    
+    boardBtn.on('pointerdown', () => this.showLeaderboard(cx));
 
     this.tweens.add({
-      targets: retryBtn,
+      targets: [retryBtn, boardBtn],
       alpha: 1,
       duration: 400,
     });
@@ -797,5 +832,88 @@ export default class ResultScene extends Phaser.Scene {
       osc.start();
       osc.stop(this.audioCtx.currentTime + duration);
     } catch (e) { /* 降级 */ }
+  }
+
+  // ==================================================================
+  //  全球排行榜
+  // ==================================================================
+  submitScoreAndShowRank(name, money, cx) {
+    if (!name || money <= 0) return;
+    fetch('http://k165.com:9801/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score: money })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.rank) {
+        const rankTxt = this.add.text(cx, 160, `👑 全球排名: 第 ${data.rank} 名 👑`, {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: '16px',
+          color: '#00ff00',
+          stroke: '#000',
+          strokeThickness: 5,
+        }).setOrigin(0.5).setDepth(20).setAlpha(0).setScale(0.5);
+
+        this.tweens.add({
+          targets: rankTxt,
+          alpha: 1,
+          scale: 1,
+          duration: 600,
+          ease: 'Back.easeOut'
+        });
+        
+        // 自动展开排行榜面板
+        this.time.delayedCall(1500, () => this.showLeaderboard(cx));
+      }
+    })
+    .catch(e => console.log('排行榜提交失败', e));
+  }
+
+  showLeaderboard(cx) {
+    const bg = this.add.graphics().setDepth(100);
+    bg.fillStyle(0x000000, 0.9);
+    bg.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+    bg.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
+
+    const title = this.add.text(cx, 100, '🏆 全球悍匪排行榜 🏆', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#ffd700'
+    }).setOrigin(0.5).setDepth(101);
+
+    const closeBtn = this.add.text(cx, GAME.HEIGHT - 80, '[ 关闭面板 ]', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ff4444'
+    }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+
+    const loadingText = this.add.text(cx, 200, '正在潜入数据库...', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#aaaaaa'
+    }).setOrigin(0.5).setDepth(101);
+
+    const container = this.add.container(0, 0, [bg, title, closeBtn, loadingText]);
+    closeBtn.on('pointerdown', () => container.destroy());
+
+    fetch('http://k165.com:9801/leaderboard')
+      .then(r => r.json())
+      .then(data => {
+        loadingText.destroy();
+        let y = 160;
+        data.slice(0, 10).forEach((item, index) => {
+          const rankText = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+          const color = index === 0 ? '#ffd700' : index === 1 ? '#cccccc' : index === 2 ? '#cd7f32' : '#ffffff';
+          
+          const nameTxt = this.add.text(40, y, `${rankText} ${item.name}`, {
+            fontFamily: 'monospace', fontSize: '16px', color: color, stroke: '#000', strokeThickness: 2
+          }).setOrigin(0, 0.5).setDepth(101);
+          
+          const moneyTxt = this.add.text(GAME.WIDTH - 40, y, `${this.formatMoney(item.score)}`, {
+            fontFamily: 'monospace', fontSize: '16px', color: '#00ff00', stroke: '#000', strokeThickness: 2
+          }).setOrigin(1, 0.5).setDepth(101);
+          
+          container.add([nameTxt, moneyTxt]);
+          y += 45;
+        });
+      })
+      .catch(e => {
+        loadingText.setText('网络波动，获取排行榜失败...');
+      });
   }
 }

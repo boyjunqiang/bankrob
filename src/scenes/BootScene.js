@@ -54,6 +54,10 @@ export default class BootScene extends Phaser.Scene {
     // 加载外部新资源
     this.load.image('gameBg', 'assets/游戏主画面.webp');
     this.load.image('safe_bg', 'assets/safe.png');
+    this.load.image('safe_5', 'assets/5保险箱.png');
+    this.load.image('safe_10', 'assets/10保险.png');
+    this.load.image('safe_15', 'assets/15保险.png');
+    this.load.image('safe_diamond', 'assets/钻石保险.png');
     this.load.image('moneybag', 'assets/钱袋.png');
     this.load.image('car', 'assets/汽车.png');
     this.load.image('gameBg2', 'assets/游戏主画面2.png');

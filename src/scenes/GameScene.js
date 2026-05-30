@@ -85,6 +85,11 @@ export default class GameScene extends Phaser.Scene {
     if (this.timerStarted) {
       this.updateTimer(time);
     }
+
+    if (this.activeBubble && this.activeBubbleTarget) {
+      this.activeBubble.x = Phaser.Math.Clamp(this.activeBubbleTarget.x, 70, GAME.WIDTH - 70);
+      this.activeBubble.y = this.activeBubbleTarget.y - 40;
+    }
   }
 
   // ==================================================================
@@ -273,66 +278,42 @@ export default class GameScene extends Phaser.Scene {
   createSafes() {
     this.safes = [];
     const positions = [
-      { x: 75, y: 190 }, // Top Left
-      { x: 375, y: 190 }, // Top Right
-      { x: 75, y: 570 }, // Bottom Left
-      { x: 375, y: 570 }, // Bottom Right
-      { x: 225, y: 380 }, // Center
+      { x: 75, y: 190, mult: 5 },  // Top Left
+      { x: 375, y: 190, mult: 15 }, // Top Right
+      { x: 75, y: 570, mult: 20 },  // Bottom Left
+      { x: 375, y: 570, mult: 25 }, // Bottom Right
+      { x: 225, y: 380, mult: 10 }, // Center
     ];
 
-    positions.forEach((pos, index) => {
-      // 只有中间（第 5 个元素，索引 4）是绿色，其余角落是黄色
-      const type = index === 4 ? 'green' : 'yellow';
-      
+    positions.forEach((pos) => {
       const shadow = this.add.graphics().setDepth(7);
-      shadow.fillStyle(0x000000, 0.4);
-      shadow.fillEllipse(0, 0, 30, 10);
+      shadow.fillStyle(0x000000, 0.5);
+      shadow.fillEllipse(0, 0, 45, 15);
       shadow.x = pos.x;
-      shadow.y = pos.y + 15;
+      shadow.y = pos.y + 25; // 往下移增加立体感
 
-      const safe = this.add.image(pos.x, pos.y, 'safe_bg')
+      let textureKey = 'safe_bg';
+      if (pos.mult === 5) textureKey = 'safe_5';
+      else if (pos.mult === 10) textureKey = 'safe_10';
+      else if (pos.mult === 15) textureKey = 'safe_15';
+      else if (pos.mult === 20) textureKey = 'safe_diamond';
+
+      const safe = this.add.image(pos.x, pos.y, textureKey)
         .setDepth(8)
         .setScale(0.08)
         .setInteractive({ useHandCursor: true });
 
-      // 着色与特效
-      if (type === 'yellow') {
-        safe.setTint(0xffcc00); // 更浓郁的黄色
-
-        // 增加发光特效：在下方叠加一个大一圈的 Additivie 混合模式图片并做脉冲动画
-        const glow = this.add.image(pos.x, pos.y, 'safe_bg')
-          .setDepth(7.5)
-          .setScale(0.09)
-          .setTint(0xffff00)
-          .setBlendMode(Phaser.BlendModes.ADD)
-          .setAlpha(0.7);
-
-        this.tweens.add({
-          targets: glow,
-          alpha: 0.2,
-          scale: 0.10,
-          duration: 800,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
-        });
-        safe.glow = glow;
-      } else {
-        safe.setTint(0x00ff00); // 更明显的纯绿色
-      }
-
-      safe.safeType = type;
+      safe.multiplier = pos.mult;
       safe.shadow = shadow;
       safe.isSafe = true;
       safe.collected = false;
 
-      const multiplierText = type === 'green' ? 'x10' : 'x5';
-      const color = type === 'green' ? '#00ff00' : '#ffcc00';
+      const multiplierText = `x${pos.mult}`;
 
       const label = this.add.text(pos.x, pos.y - 45, multiplierText, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '18px',
-        color: color,
+        color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4
       }).setOrigin(0.5).setDepth(9);
@@ -347,7 +328,6 @@ export default class GameScene extends Phaser.Scene {
       });
 
       safe.label = label;
-
       safe.on('pointerdown', () => this.onSafeClicked(safe));
       this.safes.push(safe);
     });
@@ -866,7 +846,7 @@ export default class GameScene extends Phaser.Scene {
       this.totalMoney = Math.max(this.totalMoney + 1, Math.round(this.totalMoney * bag.multiplier));
     }
 
-    const diff = this.totalMoney - oldMoney;
+    const gained = this.totalMoney - oldMoney;
 
     // ── 视觉反馈 ──
     // 钱袋消失动画
@@ -907,10 +887,14 @@ export default class GameScene extends Phaser.Scene {
 
     // ── 视觉反馈 ──
     this.updateMoneyDisplay();
-    if (diff > 0) {
-      this.showMoneyPopup(bag.x, bag.y - 20, `+${this.formatMoney(diff)}`);
-    } else if (this.bagsCollected === 1 && diff === 0) {
-      this.showMoneyPopup(bag.x, bag.y - 20, `+$0`);
+    if (gained > 0) {
+      this.showMoneyPopup(bag.x, bag.y - 20, this.formatMoney(gained).replace('$', '+$'));
+    } else {
+      if (bag.amount) {
+        this.showMoneyPopup(bag.x, bag.y - 20, `+$${bag.amount}`);
+      } else {
+        this.showMoneyPopup(bag.x, bag.y - 20, `+$0`);
+      }
     }
 
     this.spawnGoldParticles(bag.x, bag.y);
@@ -935,7 +919,12 @@ export default class GameScene extends Phaser.Scene {
     if (safe.collected || this.isCracking) return;
     this.isCracking = true;
     this.currentSafe = safe;
-    this.showSafeCrackingUI(safe);
+    
+    if (safe.multiplier === 20) {
+      this.showDiamondSafeUI(safe);
+    } else {
+      this.showSafeCrackingUI(safe);
+    }
   }
 
   showSafeCrackingUI(safe) {
@@ -1069,6 +1058,11 @@ export default class GameScene extends Phaser.Scene {
   }
 
   closeSafeCrackingUI(success) {
+    if (this.diamondSafeCleanup) {
+      this.diamondSafeCleanup();
+      this.diamondSafeCleanup = null;
+    }
+    
     if (this.safeUIContainer) {
       this.safeUIContainer.destroy();
       this.safeUIContainer = null;
@@ -1078,21 +1072,14 @@ export default class GameScene extends Phaser.Scene {
     if (success && this.currentSafe) {
       const safe = this.currentSafe;
       safe.collected = true;
-      
       const oldMoney = this.totalMoney;
-
-      if (safe.safeType === 'yellow') {
-        this.totalMoney *= 5;
-      } else if (safe.safeType === 'green') {
-        this.totalMoney *= 10;
-      }
-
-      const diff = this.totalMoney - oldMoney;
+      
+      this.totalMoney *= safe.multiplier;
+      
+      const gained = this.totalMoney - oldMoney;
+      this.showMoneyPopup(safe.x, safe.y - 20, this.formatMoney(gained).replace('$', '+$'));
 
       this.updateMoneyDisplay();
-      if (diff > 0) {
-        this.showMoneyPopup(safe.x, safe.y - 20, `+${this.formatMoney(diff)}`);
-      }
       this.spawnGoldParticles(safe.x, safe.y);
       this.playCollectSound();
       this.vibrateDevice(50);
@@ -1112,6 +1099,110 @@ export default class GameScene extends Phaser.Scene {
       }
     }
     this.currentSafe = null;
+  }
+
+  showDiamondSafeUI(safe) {
+    const cx = GAME.WIDTH / 2;
+    const cy = GAME.HEIGHT / 2;
+
+    this.safeUIContainer = this.add.container(0, 0).setDepth(200);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.85);
+    overlay.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
+    this.safeUIContainer.add(overlay);
+
+    const titleText = this.add.text(cx, 100, '💎 暴力破解钻石保险箱', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#00ffff'
+    }).setOrigin(0.5);
+
+    const hintText = this.add.text(cx, 150, '按住轮盘旋转5圈 (1800度)！', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ffffff'
+    }).setOrigin(0.5);
+
+    const dialContainer = this.add.container(cx, cy);
+    
+    // Draw wheel
+    const dialBg = this.add.graphics();
+    dialBg.lineStyle(8, 0xaaaaaa);
+    dialBg.strokeCircle(0, 0, 100);
+    dialBg.fillStyle(0x333333, 1);
+    dialBg.fillCircle(0, 0, 96);
+    
+    // Draw indicator line
+    const dialLine = this.add.graphics();
+    dialLine.lineStyle(4, 0x00ffff);
+    dialLine.moveTo(0, 0);
+    dialLine.lineTo(0, -90);
+    dialLine.strokePath();
+    
+    dialContainer.add([dialBg, dialLine]);
+
+    const hitArea = new Phaser.Geom.Circle(0, 0, 150);
+    dialContainer.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
+    
+    const progressText = this.add.text(cx, cy + 150, '0 / 1800°', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#00ff00'
+    }).setOrigin(0.5);
+
+    const closeBtn = this.add.text(cx, GAME.HEIGHT - 80, '[ 放弃 ]', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffaaaa'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.closeSafeCrackingUI(false));
+
+    this.safeUIContainer.add([titleText, hintText, dialContainer, progressText, closeBtn]);
+
+    let isDragging = false;
+    let lastAngle = 0;
+    let totalAngle = 0;
+
+    dialContainer.on('pointerdown', (pointer) => {
+      isDragging = true;
+      lastAngle = Phaser.Math.Angle.Between(cx, cy, pointer.x, pointer.y);
+    });
+
+    const onMove = (pointer) => {
+      if (!isDragging) return;
+      const currentAngle = Phaser.Math.Angle.Between(cx, cy, pointer.x, pointer.y);
+      let diff = currentAngle - lastAngle;
+      
+      if (diff > Math.PI) diff -= Math.PI * 2;
+      else if (diff < -Math.PI) diff += Math.PI * 2;
+      
+      totalAngle += Math.abs(diff);
+      lastAngle = currentAngle;
+
+      const degrees = Math.floor(Phaser.Math.RadToDeg(totalAngle));
+      dialContainer.rotation += diff;
+      
+      progressText.setText(`${Math.min(1800, degrees)} / 1800°`);
+
+      // 每次转满一圈(360度)给一个轻微震动反馈
+      if (degrees > 0 && degrees % 360 < Math.floor(Phaser.Math.RadToDeg(Math.abs(diff)))) {
+        this.vibrateDevice(20);
+      }
+
+      if (degrees >= 1800) {
+        isDragging = false;
+        dialContainer.disableInteractive();
+        progressText.setText('解锁成功！');
+        progressText.setColor('#ffff00');
+        this.time.delayedCall(400, () => this.closeSafeCrackingUI(true));
+      }
+    };
+
+    const onUp = () => {
+      isDragging = false;
+    };
+
+    this.input.on('pointermove', onMove);
+    this.input.on('pointerup', onUp);
+    
+    this.diamondSafeCleanup = () => {
+      this.input.off('pointermove', onMove);
+      this.input.off('pointerup', onUp);
+    };
   }
 
   triggerAlarm() {
@@ -1564,6 +1655,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.activeBubble = container;
+    this.activeBubbleTarget = target;
 
     // 自动消失
     this.time.delayedCall(duration, () => {
@@ -1577,6 +1669,7 @@ export default class GameScene extends Phaser.Scene {
             container.destroy();
             if (this.activeBubble === container) {
               this.activeBubble = null;
+              this.activeBubbleTarget = null;
             }
           },
         });

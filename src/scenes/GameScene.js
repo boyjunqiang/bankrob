@@ -1111,7 +1111,7 @@ export default class GameScene extends Phaser.Scene {
 
     // 翻倍指示 (第2袋以后)
     if (this.bagsCollected > 1) {
-      const x2 = this.add.text(x + 50, y + 5, 'x2!', {
+      const multiplierText = this.add.text(x + 50, y + 5, 'x1.5!', {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: '14px',
         color: '#ff4444',
@@ -1120,13 +1120,13 @@ export default class GameScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(120);
 
       this.tweens.add({
-        targets: x2,
+        targets: multiplierText,
         y: y - 30,
         alpha: { from: 1, to: 0 },
         scale: { from: 1.5, to: 0.5 },
         duration: 600,
         delay: 100,
-        onComplete: () => x2.destroy(),
+        onComplete: () => multiplierText.destroy(),
       });
     }
   }

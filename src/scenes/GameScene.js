@@ -269,7 +269,7 @@ export default class GameScene extends Phaser.Scene {
     const positions = [
       { x: 75, y: 190, mult: 5 },  // Top Left
       { x: 375, y: 190, mult: 15 }, // Top Right (Button safe)
-      { x: 75, y: 350, mult: 10 }, // Bottom Left
+      { x: 75, y: 350, mult: 35 }, // Bottom Left (Fingerprint safe)
       { x: 375, y: 350, mult: 40 }, // Bottom Right (Password 5-digits + Rotating)
       { x: GAME.WIDTH / 2, y: GAME.HEIGHT / 2 - 50, mult: 20 } // Center (Rotating)
     ];
@@ -277,7 +277,7 @@ export default class GameScene extends Phaser.Scene {
     positions.forEach((pos) => {
       let textureKey = 'safe_bg';
       if (pos.mult === 5) textureKey = 'safe_5';
-      else if (pos.mult === 10) textureKey = 'safe_10';
+      else if (pos.mult === 35) textureKey = 'safe_35';
       else if (pos.mult === 15) textureKey = 'safe_15';
       else if (pos.mult === 20) textureKey = 'safe_diamond';
       else if (pos.mult === 40) textureKey = 'safe_bg';
@@ -289,6 +289,7 @@ export default class GameScene extends Phaser.Scene {
       let targetW = 44;
       if (pos.mult === 20) targetW = 45;
       else if (pos.mult === 40) targetW = 53;
+      else if (pos.mult === 35) targetW = 50;
       const safeScale = targetW / safe.width;
       safe.setScale(safeScale);
 
@@ -907,6 +908,8 @@ export default class GameScene extends Phaser.Scene {
       this.showDiamondSafeUI(safe);
     } else if (safe.multiplier === 15) {
       this.showButtonSafeUI(safe);
+    } else if (safe.multiplier === 35) {
+      this.showFingerprintSafeUI(safe);
     } else {
       this.showSafeCrackingUI(safe);
     }
@@ -1103,6 +1106,135 @@ export default class GameScene extends Phaser.Scene {
       this.tweens.add({ targets: safe.shadow, scale: 0, alpha: 0, duration: 250, onComplete: () => safe.shadow.destroy() });
     }
     this.currentSafe = null;
+  }
+
+  showFingerprintSafeUI(safe) {
+    this.isCracking = true;
+    const cx = GAME.WIDTH / 2;
+    const cy = GAME.HEIGHT / 2;
+
+    this.safeUIContainer = this.add.container(0, 0).setDepth(200);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.85);
+    overlay.fillRect(0, 0, GAME.WIDTH, GAME.HEIGHT);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT), Phaser.Geom.Rectangle.Contains);
+    
+    const titleText = this.add.text(cx, 160, '👆 指纹识别 (35x)', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#ffd700'
+    }).setOrigin(0.5);
+    
+    const hintText = this.add.text(cx, 230, '长按下方指纹印\n在心里默数 3 秒\n(必须在2.8秒~3.2秒内松开)', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '12px', color: '#aaaaaa', align: 'center', lineSpacing: 10
+    }).setOrigin(0.5);
+
+    const statusText = this.add.text(cx, cy - 80, '等待录入...', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '16px', color: '#ffffff'
+    }).setOrigin(0.5);
+
+    const btnGraphic = this.add.graphics();
+    const btnHitArea = new Phaser.Geom.Circle(cx, cy + 60, 60);
+    
+    const fpIcon = this.add.text(cx, cy + 60, '◎', {
+      fontSize: '60px', color: '#00ff00'
+    }).setOrigin(0.5);
+
+    let pressStartTime = 0;
+    let isPressing = false;
+    let failTimer = null;
+    
+    const pulseTween = this.tweens.add({
+      targets: [btnGraphic, fpIcon],
+      scale: 1.15,
+      alpha: 0.6,
+      duration: 300,
+      yoyo: true,
+      repeat: -1,
+      paused: true
+    });
+
+    const drawCircle = (color, alpha, thickness) => {
+      btnGraphic.clear();
+      btnGraphic.lineStyle(thickness, color, 1);
+      btnGraphic.fillStyle(color, alpha);
+      btnGraphic.fillCircle(cx, cy + 60, 60);
+      btnGraphic.strokeCircle(cx, cy + 60, 60);
+      fpIcon.setColor(color === 0x00ff00 ? '#00ff00' : (color === 0x00ffff ? '#00ffff' : '#ff0000'));
+    };
+
+    drawCircle(0x00ff00, 0.4, 4);
+    btnGraphic.setInteractive(btnHitArea, Phaser.Geom.Circle.Contains);
+
+    const resetUI = () => {
+      isPressing = false;
+      pulseTween.pause();
+      btnGraphic.setScale(1);
+      fpIcon.setScale(1);
+      drawCircle(0x00ff00, 0.4, 4);
+    };
+
+    btnGraphic.on('pointerdown', () => {
+      isPressing = true;
+      pressStartTime = this.time.now;
+      statusText.setText('扫描中...');
+      statusText.setColor('#00ffff');
+      
+      drawCircle(0x00ffff, 0.5, 6);
+      pulseTween.play();
+      this.vibrateDevice(50);
+
+      if (failTimer) failTimer.remove();
+      failTimer = this.time.delayedCall(3201, () => {
+        if (isPressing) {
+          isPressing = false;
+          statusText.setText('按太久了！触发警报');
+          statusText.setColor('#ff0000');
+          this.cameras.main.shake(300, 0.015);
+          this.vibrateDevice(200);
+          resetUI();
+          drawCircle(0xff0000, 0.6, 6);
+        }
+      });
+    });
+
+    btnGraphic.on('pointerup', () => {
+      if (!isPressing) return; // Already failed due to holding too long
+      isPressing = false;
+      if (failTimer) failTimer.remove();
+      
+      const holdTime = this.time.now - pressStartTime;
+      
+      if (holdTime >= 2800 && holdTime <= 3200) {
+        statusText.setText(`成功! (${(holdTime/1000).toFixed(2)}秒)`);
+        statusText.setColor('#00ff00');
+        btnGraphic.disableInteractive();
+        resetUI();
+        this.time.delayedCall(600, () => {
+          this.closeSafeCrackingUI(true);
+        });
+      } else if (holdTime < 2800) {
+        statusText.setText(`太快了! (${(holdTime/1000).toFixed(2)}秒)`);
+        statusText.setColor('#ff0000');
+        this.cameras.main.shake(200, 0.01);
+        this.vibrateDevice(100);
+        resetUI();
+        drawCircle(0xff0000, 0.5, 4);
+      }
+    });
+
+    btnGraphic.on('pointerout', () => {
+      if (isPressing) btnGraphic.emit('pointerup');
+    });
+
+    const closeBtn = this.add.text(cx, 720, '[ 放弃破解 ]', {
+      fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => {
+      if (failTimer) failTimer.remove();
+      this.closeSafeCrackingUI(false);
+    });
+
+    this.safeUIContainer.add([overlay, titleText, hintText, statusText, btnGraphic, fpIcon, closeBtn]);
   }
 
   showButtonSafeUI(safe) {

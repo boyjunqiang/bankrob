@@ -11,6 +11,7 @@ export default class BootScene extends Phaser.Scene {
   preload() {
     this.load.video('homeVideo', 'assets/首页视频.mp4');
     this.load.audio('homeAudio', 'assets/启动页.mp3');
+    this.load.audio('menuSiren', 'assets/menu_siren.mp3');
     this.load.image('homeBtn', 'assets/首页开始按钮.png');
     this.load.image('homeTitle', 'assets/首页标题.png');
 

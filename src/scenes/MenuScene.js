@@ -49,6 +49,7 @@ export default class MenuScene extends Phaser.Scene {
 
     // ── 背景音频 ──
     this.homeAudio = this.sound.add('homeAudio', { loop: true });
+    this.menuSiren = this.sound.add('menuSiren', { loop: true, volume: 0.6 });
     
     // 现代浏览器禁止自动播放声音，需等待用户第一次点击
     // 点击后同时播放背景音乐 + 取消视频静音，让两者一起播放
@@ -56,6 +57,9 @@ export default class MenuScene extends Phaser.Scene {
       // 播放背景音乐
       if (!this.homeAudio.isPlaying) {
         this.homeAudio.play();
+      }
+      if (!this.menuSiren.isPlaying) {
+        this.menuSiren.play();
       }
       // 同时取消视频静音，让视频声音也播出来
       video.setMute(false);
@@ -164,6 +168,9 @@ export default class MenuScene extends Phaser.Scene {
       if (!this.homeAudio.isPlaying) {
         this.homeAudio.play();
       }
+      if (!this.menuSiren.isPlaying) {
+        this.menuSiren.play();
+      }
       
       // 按下反馈
       this.tweens.add({
@@ -174,6 +181,7 @@ export default class MenuScene extends Phaser.Scene {
         yoyo: true,
         onComplete: () => {
           this.homeAudio.stop();
+          this.menuSiren.stop();
           this.cameras.main.fadeOut(400, 0, 0, 0);
           this.time.delayedCall(400, () => {
             this.scene.start('GameScene');

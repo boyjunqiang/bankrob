@@ -4,7 +4,7 @@ import {
   BANK, PARTNER_LINES, ROBBER_LINES, ROBBER_QUIPS,
 } from '../config/gameConfig.js';
 
-const BAG_SCALE = 1.0;
+const BAG_SCALE = 1.5;
 const PARTNER_SCALE = 42 / 104;
 
 // 主角显示尺寸
@@ -1107,7 +1107,7 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: '"Press Start 2P", monospace', fontSize: '18px', color: '#00ffff'
     }).setOrigin(0.5);
 
-    const hintText = this.add.text(cx, 150, '按住轮盘旋转5圈 (1800度)！', {
+    const hintText = this.add.text(cx, 150, '按住轮盘旋转10圈 (3600度)！', {
       fontFamily: '"Press Start 2P", monospace', fontSize: '14px', color: '#ffffff'
     }).setOrigin(0.5);
 
@@ -1125,7 +1125,7 @@ export default class GameScene extends Phaser.Scene {
     const hitArea = new Phaser.Geom.Circle(0, 0, 150);
     dialContainer.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
     
-    const progressText = this.add.text(cx, cy + 150, '0 / 1800°', {
+    const progressText = this.add.text(cx, cy + 150, '0 / 3600°', {
       fontFamily: '"Press Start 2P", monospace', fontSize: '20px', color: '#00ff00'
     }).setOrigin(0.5);
 
@@ -1159,14 +1159,14 @@ export default class GameScene extends Phaser.Scene {
       const degrees = Math.floor(Phaser.Math.RadToDeg(totalAngle));
       dialContainer.rotation += diff;
       
-      progressText.setText(`${Math.min(1800, degrees)} / 1800°`);
+      progressText.setText(`${Math.min(3600, degrees)} / 3600°`);
 
       // 每次转满一圈(360度)给一个轻微震动反馈
       if (degrees > 0 && degrees % 360 < Math.floor(Phaser.Math.RadToDeg(Math.abs(diff)))) {
         this.vibrateDevice(20);
       }
 
-      if (degrees >= 1800) {
+      if (degrees >= 3600) {
         isDragging = false;
         dialContainer.disableInteractive();
         progressText.setText('解锁成功！');

@@ -156,14 +156,15 @@ export default class ResultScene extends Phaser.Scene {
             
             setTimeout(() => {
               if (data.money > 0) {
-                let playerName = localStorage.getItem('bankrob_player_name');
-                if (!playerName) {
-                  playerName = prompt('🎉 抢劫成功！\n请输入你的大名上传全球排行榜：');
-                  if (playerName) localStorage.setItem('bankrob_player_name', playerName);
-                }
+                let oldName = localStorage.getItem('bankrob_player_name') || '';
+                let playerName = prompt('🎉 抢劫成功！\n请输入你的大名以上传全球排行榜：', oldName);
                 
                 if (playerName) {
+                  localStorage.setItem('bankrob_player_name', playerName);
                   this.submitScoreAndShowRank(playerName, data.money, cx);
+                } else if (oldName) {
+                  // 如果取消了，但之前有名字，依然自动提交
+                  this.submitScoreAndShowRank(oldName, data.money, cx);
                 }
               }
             }, 800);

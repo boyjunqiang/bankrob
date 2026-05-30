@@ -386,26 +386,26 @@ export default class GameScene extends Phaser.Scene {
     // 半透明HUD背景（显示倒计时和金额）
     this.hudBg = this.add.graphics().setDepth(90);
     this.hudBg.fillStyle(0x000000, 0.5);
-    this.hudBg.fillRoundedRect(GAME.WIDTH / 2 - 140, 6, 280, 36, 8);
+    this.hudBg.fillRoundedRect(GAME.WIDTH / 2 - 100, 6, 200, 64, 8);
     this.hudBg.setAlpha(0);
 
-    // 倒计时（靠左显示）
-    this.timerText = this.add.text(GAME.WIDTH / 2 - 120, 12, '⏱️ 60.0s', {
-      fontFamily: '"Press Start 2P", monospace',
-      fontSize: '16px',
-      color: '#ff4444',
-      stroke: '#000',
-      strokeThickness: 4,
-    }).setOrigin(0, 0).setDepth(100).setAlpha(0);
-
-    // 金额（靠右显示）
-    this.moneyText = this.add.text(GAME.WIDTH / 2 + 120, 12, '💰 $0', {
+    // 金额（靠上居中）
+    this.moneyText = this.add.text(GAME.WIDTH / 2, 14, '💰 $0', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '16px',
       color: '#ffd700',
       stroke: '#000',
       strokeThickness: 4,
-    }).setOrigin(1, 0).setDepth(100).setAlpha(0);
+    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0);
+
+    // 倒计时（靠下居中）
+    this.timerText = this.add.text(GAME.WIDTH / 2, 40, '⏱️ 60.0s', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '16px',
+      color: '#ff4444',
+      stroke: '#000',
+      strokeThickness: 4,
+    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0);
 
     // 翻倍弹出数字（复用）
     this.popupText = this.add.text(0, 0, '', {

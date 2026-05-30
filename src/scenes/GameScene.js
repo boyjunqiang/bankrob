@@ -242,20 +242,29 @@ export default class GameScene extends Phaser.Scene {
   }
 
   createHUD() {
-    // 半透明HUD背景（只显示金额）
+    // 半透明HUD背景（显示倒计时和金额）
     this.hudBg = this.add.graphics().setDepth(90);
     this.hudBg.fillStyle(0x000000, 0.5);
-    this.hudBg.fillRoundedRect(GAME.WIDTH / 2 - 100, 6, 200, 36, 8);
+    this.hudBg.fillRoundedRect(GAME.WIDTH / 2 - 140, 6, 280, 36, 8);
     this.hudBg.setAlpha(0);
 
-    // 金额（居中显示）
-    this.moneyText = this.add.text(GAME.WIDTH / 2, 12, '💰 $0', {
+    // 倒计时（靠左显示）
+    this.timerText = this.add.text(GAME.WIDTH / 2 - 120, 12, '⏱️ 60.0s', {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: '16px',
+      color: '#ff4444',
+      stroke: '#000',
+      strokeThickness: 4,
+    }).setOrigin(0, 0).setDepth(100).setAlpha(0);
+
+    // 金额（靠右显示）
+    this.moneyText = this.add.text(GAME.WIDTH / 2 + 120, 12, '💰 $0', {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: '16px',
       color: '#ffd700',
       stroke: '#000',
       strokeThickness: 4,
-    }).setOrigin(0.5, 0).setDepth(100).setAlpha(0);
+    }).setOrigin(1, 0).setDepth(100).setAlpha(0);
 
     // 翻倍弹出数字（复用）
     this.popupText = this.add.text(0, 0, '', {
@@ -743,8 +752,9 @@ export default class GameScene extends Phaser.Scene {
       this.timerStarted = true;
       this.timerStartTime = this.time.now;
 
-      // HUD 淡入（只有金额，没有倒计时）
+      // HUD 淡入
       this.tweens.add({ targets: this.hudBg, alpha: 1, duration: 300 });
+      this.tweens.add({ targets: this.timerText, alpha: 1, duration: 300 });
       this.tweens.add({ targets: this.moneyText, alpha: 1, duration: 300 });
 
       // 逃跑按钮出现
@@ -769,7 +779,18 @@ export default class GameScene extends Phaser.Scene {
     const elapsed = (time - this.timerStartTime) / 1000;
     const displayTime = TIMER.DISPLAY_SECONDS - elapsed;
 
-    // 不显示倒计时，不泄露时间信息
+    // 显示倒计时
+    let sign = '';
+    let val = displayTime;
+    if (val < 0) {
+      sign = '-';
+      val = Math.abs(val);
+    }
+    this.timerText.setText(`⏱️ ${sign}${val.toFixed(1)}s`);
+    
+    if (displayTime <= 10) {
+      this.timerText.setColor('#ff0000');
+    }
 
     // 心跳音效（最后15秒）— 给玩家隐性压力
     if (displayTime <= 15 && !this.heartbeatInterval && this.audioCtx) {

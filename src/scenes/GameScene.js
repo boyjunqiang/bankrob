@@ -20,11 +20,39 @@ export default class GameScene extends Phaser.Scene {
 
   /* ───────── 初始化状态 ───────── */
   init() {
-    this.totalMoney = 0;
+    // 读取黑市商店升级
+    try {
+      this.purchasedItems = JSON.parse(getStorage('heist_purchased_items') || '[]');
+    } catch (e) {
+      this.purchasedItems = [];
+    }
+    this.equippedSkin = getStorage('heist_equipped_skin') || '';
+
+    // 判断具体升级是否拥有
+    this.hasSneakers = this.purchasedItems.includes('sneakers');
+    this.hasCigar = this.purchasedItems.includes('cigar');
+    this.hasCrowbar = this.purchasedItems.includes('crowbar');
+    this.hasAdrenaline = this.purchasedItems.includes('adrenaline');
+
+    // 教父皮肤初始资金额外 +1000京
+    this.totalMoney = this.equippedSkin === 'skin_godfather' ? 100000000000000000000n : 0n;
     this.bagsCollected = 0;
     this.timerStarted = false;
     this.timerStartTime = 0;
-    this.policeDelay = Phaser.Math.FloatBetween(TIMER.POLICE_MIN, TIMER.POLICE_MAX);
+
+    // 基础警察到达时间
+    let policeTime = Phaser.Math.FloatBetween(TIMER.POLICE_MIN, TIMER.POLICE_MAX);
+    
+    // 镇定雪茄延缓出警 5 秒
+    if (this.hasCigar) {
+      policeTime += 5.0;
+    }
+    // 猫耳兜帽延缓出警 3.5 秒
+    if (this.equippedSkin === 'skin_cat') {
+      policeTime += 3.5;
+    }
+    this.policeDelay = policeTime;
+
     this.gameEnded = false;
     this.isEscaping = false;
     this.introPlaying = true;
@@ -90,6 +118,12 @@ export default class GameScene extends Phaser.Scene {
     this.updateRobberMovement(delta);
     if (this.timerStarted) {
       this.updateTimer(time);
+    }
+
+    // 同步防弹衣护盾位置跟随主角
+    if (this.vestGracePeriodActive && this.vestShieldGraphics && this.robber) {
+      this.vestShieldGraphics.x = this.robber.x;
+      this.vestShieldGraphics.y = this.robber.y;
     }
 
     if (this.activeBubble && this.activeBubbleTarget) {
@@ -250,8 +284,8 @@ export default class GameScene extends Phaser.Scene {
         bag.multiplier = pos.multiplier;
         labelText = `x${pos.multiplier}`;
       } else if (pos.amount) {
-        bag.amount = pos.amount;
-        labelText = `+${pos.amount}`;
+        bag.amount = BigInt(pos.amount);
+        labelText = `+$${pos.amount}`;
       }
 
       // 添加印在钱袋上的文字 (小号，直接贴在袋子上)
@@ -359,6 +393,15 @@ export default class GameScene extends Phaser.Scene {
       duration: 150,
       paused: true,
     });
+
+    // 装备皮肤的视觉着色特效
+    if (this.equippedSkin === 'skin_godfather') {
+      this.robber.setTint(0xffd700); // 黄金教父
+    } else if (this.equippedSkin === 'skin_cat') {
+      this.robber.setTint(0xffaacc); // 粉嫩猫耳
+    } else if (this.equippedSkin === 'skin_joker') {
+      this.robber.setTint(0xb533ff); // 邪恶紫色小丑
+    }
   }
 
   /**
@@ -637,8 +680,10 @@ export default class GameScene extends Phaser.Scene {
           });
 
           // 自动触发警报和倒计时
-          if (this.totalMoney === 0) {
-            this.totalMoney = MONEY.INITIAL;
+          if (this.totalMoney === 0n) {
+            this.totalMoney = 0n;
+          } else if (this.totalMoney > 0n) {
+            this.saveToBlackMarket(this.totalMoney);
           }
           this.triggerAlarm();
 
@@ -717,6 +762,31 @@ export default class GameScene extends Phaser.Scene {
     this.robberBobTween.resume();
   }
 
+  getDynamicSpeed() {
+    let baseSpeed = this.isEscaping ? ROBBER.ESCAPE_SPEED : ROBBER.SPEED;
+
+    // 1. 黄金跑鞋升级：速度提升 20%
+    if (this.hasSneakers) {
+      baseSpeed *= 1.20;
+    }
+
+    // 2. 肾上腺素药水升级：倒计时开始的前 15 秒速度翻倍
+    if (this.hasAdrenaline && this.timerStarted) {
+      const elapsed = (this.time.now - this.timerStartTime) / 1000;
+      if (elapsed < 15) {
+        baseSpeed *= 2.0;
+      }
+    }
+
+    // 3. 贪心负重惩罚：背的钱袋越多，移速越慢！
+    // 每背一袋钱移速 -1.5px/s
+    const penaltyPerBag = 1.5;
+    const speedPenalty = this.bagsCollected * penaltyPerBag;
+
+    // 保证最低移速不低于 55px/s，不至于完全走不动
+    return Math.max(55, baseSpeed - speedPenalty);
+  }
+
   // ==================================================================
   //  劫匪移动
   // ==================================================================
@@ -728,7 +798,7 @@ export default class GameScene extends Phaser.Scene {
     const dy = target.y - this.robber.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    const speed = this.isEscaping ? ROBBER.ESCAPE_SPEED : ROBBER.SPEED;
+    const speed = this.getDynamicSpeed();
     const step = speed * delta / 1000;
 
     if (dist <= step + 2) {
@@ -830,8 +900,11 @@ export default class GameScene extends Phaser.Scene {
     if (bag.amount) {
       this.totalMoney += bag.amount;
     } else {
-      // 正常乘以专属倍数，确保至少涨1块钱
-      this.totalMoney = Math.max(this.totalMoney + 1, Math.round(this.totalMoney * bag.multiplier));
+      // 小丑面具特权：所有钱袋连击翻倍系数额外增加 0.1x
+      const finalMultiplier = this.equippedSkin === 'skin_joker' ? bag.multiplier + 0.1 : bag.multiplier;
+      let nextMoney = (this.totalMoney * BigInt(Math.round(finalMultiplier * 10))) / 10n;
+      if (nextMoney <= this.totalMoney) nextMoney = this.totalMoney + 1n;
+      this.totalMoney = nextMoney;
     }
 
     const gained = this.totalMoney - oldMoney;
@@ -877,18 +950,19 @@ export default class GameScene extends Phaser.Scene {
     this.updateMoneyDisplay();
     if (gained > 0) {
       if (bag.amount) {
-        this.showMoneyPopup(bag.x, bag.y - 20, `+${gained}`);
+        this.showMoneyPopup(bag.x, bag.y - 20, `+$${gained}`);
       } else {
         this.showMoneyPopup(bag.x, bag.y - 20, this.formatMoney(gained).replace('$', '+$'));
       }
     } else {
       if (bag.amount) {
-        this.showMoneyPopup(bag.x, bag.y - 20, `+${bag.amount}`);
+        this.showMoneyPopup(bag.x, bag.y - 20, `+$${bag.amount}`);
       } else {
         this.showMoneyPopup(bag.x, bag.y - 20, `+0`);
       }
     }
 
+    this.saveToBlackMarket(gained);
     this.spawnGoldParticles(bag.x, bag.y);
 
     // 音效
@@ -929,6 +1003,10 @@ export default class GameScene extends Phaser.Scene {
       this.safePassword += Phaser.Math.Between(1, 9).toString();
     }
     this.safeInput = '';
+    if (this.hasCrowbar) {
+      // 钛合金开锁锤：自动破解并预填首位密码！
+      this.safeInput = this.safePassword[0];
+    }
 
     const MORSE_CODE = {
       '1': '.----', '2': '..---', '3': '...--',
@@ -963,7 +1041,7 @@ export default class GameScene extends Phaser.Scene {
       lineSpacing: maxLength === 5 ? 5 : 10
     }).setOrigin(0.5);
     
-    const underscores = '_'.repeat(maxLength);
+    const underscores = this.hasCrowbar ? this.safePassword[0] + '_'.repeat(maxLength - 1) : '_'.repeat(maxLength);
     this.safeInputDisplay = this.add.text(cx, 280, underscores, {
       fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '28px', color: '#00ff00', letterSpacing: 10
     }).setOrigin(0.5);
@@ -1089,12 +1167,17 @@ export default class GameScene extends Phaser.Scene {
     safe.collected = true;
     const oldMoney = this.totalMoney;
     
-    this.totalMoney *= safe.multiplier;
+    // 小丑面具特权：所有保险箱连击翻倍系数额外增加 0.1x
+    const finalMultiplier = this.equippedSkin === 'skin_joker' ? safe.multiplier + 0.1 : safe.multiplier;
+    let nextMoney = (this.totalMoney * BigInt(Math.round(finalMultiplier * 10))) / 10n;
+    if (nextMoney <= this.totalMoney) nextMoney = this.totalMoney + 1n;
+    this.totalMoney = nextMoney;
     
     const gained = this.totalMoney - oldMoney;
     this.showMoneyPopup(safe.x, safe.y - 20, this.formatMoney(gained).replace('$', '+$'));
 
     this.updateMoneyDisplay();
+    this.saveToBlackMarket(gained);
     this.spawnGoldParticles(safe.x, safe.y);
     this.playCollectSound();
     this.vibrateDevice(50);
@@ -1131,7 +1214,10 @@ export default class GameScene extends Phaser.Scene {
       fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '18px', color: '#ffd700'
     }).setOrigin(0.5);
     
-    const hintText = this.add.text(cx, 230, '长按下方指纹印\n在心里默数 3 秒\n(必须在2.5秒~3.5秒内松开)', {
+    const hintStr = this.hasCrowbar
+      ? '长按下方指纹印\n在心里默数 3 秒\n(【开锁锤加成】已放宽至1.8秒~4.2秒内松开)'
+      : '长按下方指纹印\n在心里默数 3 秒\n(必须在2.5秒~3.5秒内松开)';
+    const hintText = this.add.text(cx, 230, hintStr, {
       fontFamily: '"Zpix", "Press Start 2P", monospace', fontSize: '12px', color: '#aaaaaa', align: 'center', lineSpacing: 10
     }).setOrigin(0.5);
 
@@ -1191,7 +1277,8 @@ export default class GameScene extends Phaser.Scene {
       this.vibrateDevice(50);
 
       if (failTimer) failTimer.remove();
-      failTimer = this.time.delayedCall(3501, () => {
+      const failLimit = this.hasCrowbar ? 4201 : 3501;
+      failTimer = this.time.delayedCall(failLimit, () => {
         if (isPressing) {
           isPressing = false;
           statusText.setText('按太久了！触发警报');
@@ -1210,8 +1297,10 @@ export default class GameScene extends Phaser.Scene {
       if (failTimer) failTimer.remove();
       
       const holdTime = this.time.now - pressStartTime;
+      const minTime = this.hasCrowbar ? 1800 : 2500;
+      const maxTime = this.hasCrowbar ? 4200 : 3500;
       
-      if (holdTime >= 2500 && holdTime <= 3500) {
+      if (holdTime >= minTime && holdTime <= maxTime) {
         statusText.setText(`成功! (${(holdTime/1000).toFixed(2)}秒)`);
         statusText.setColor('#00ff00');
         btnGraphic.disableInteractive();
@@ -1219,7 +1308,7 @@ export default class GameScene extends Phaser.Scene {
         this.time.delayedCall(600, () => {
           this.closeSafeCrackingUI(true);
         });
-      } else if (holdTime < 2500) {
+      } else if (holdTime < minTime) {
         statusText.setText(`太快了! (${(holdTime/1000).toFixed(2)}秒)`);
         statusText.setColor('#ff0000');
         this.cameras.main.shake(200, 0.01);
@@ -1456,16 +1545,11 @@ export default class GameScene extends Phaser.Scene {
     this.playAlarmSound();
   }
 
-  // ==================================================================
-  //  倒计时系统
-  // ==================================================================
   updateTimer(time) {
     const elapsed = (time - this.timerStartTime) / 1000;
     const displayTime = TIMER.DISPLAY_SECONDS - elapsed;
 
-    // 显示正计时
     this.timerText.setText(`⏱️ ${elapsed.toFixed(1)}s`);
-    
     if (displayTime <= 10) {
       this.timerText.setColor('#ff0000');
     }
@@ -1487,6 +1571,7 @@ export default class GameScene extends Phaser.Scene {
           return;
         }
       }
+
       this.policeCaught();
     }
   }
@@ -1728,8 +1813,8 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.fadeOut(600, 0, 0, 0);
       this.time.delayedCall(700, () => {
         const moneyIfOneLess = this.bagsCollected > 1
-          ? Math.round(this.totalMoney / 1.5)
-          : 0;
+          ? (this.totalMoney * 10n) / 15n
+          : 0n;
         this.scene.start('ResultScene', {
           success: false,
           money: 0,
@@ -1743,6 +1828,15 @@ export default class GameScene extends Phaser.Scene {
 
     this.playFailSound();
     this.vibrateDevice(300);
+  }
+
+  saveToBlackMarket(amount) {
+    if (amount <= 0n) return;
+    try {
+      let currentSavings = BigInt(getStorage('heist_savings') || '0');
+      currentSavings += amount;
+      setStorage('heist_savings', currentSavings.toString(););
+    } catch(e) {}
   }
 
   // ==================================================================
@@ -1972,6 +2066,12 @@ export default class GameScene extends Phaser.Scene {
   }
 
   cleanupSounds() {
+    if (this.vestShieldGraphics) {
+      this.vestShieldGraphics.destroy();
+      this.vestShieldGraphics = null;
+    }
+    this.vestGracePeriodActive = false;
+
     if (this.alarmSoundInterval) {
       clearInterval(this.alarmSoundInterval);
       this.alarmSoundInterval = null;
@@ -2006,5 +2106,38 @@ export default class GameScene extends Phaser.Scene {
   // ==================================================================
   shutdown() {
     this.cleanupSounds();
+  }
+
+  formatMoney(n) {
+    if (typeof n !== 'bigint') {
+      try { n = BigInt(Math.floor(n)); } catch (e) { n = 0n; }
+    }
+    if (n === 0n) return '$0';
+    const sign = n < 0n ? '-' : '';
+    const absN = n < 0n ? -n : n;
+
+    const units = [
+      { name: '极', val: 1000000000000000000000000000000000000000000000000n },
+      { name: '载', val: 100000000000000000000000000000000000000000000n },
+      { name: '正', val: 10000000000000000000000000000000000000000n },
+      { name: '涧', val: 1000000000000000000000000000000000000n },
+      { name: '沟', val: 100000000000000000000000000000000n },
+      { name: '穰', val: 10000000000000000000000000000n },
+      { name: '秭', val: 1000000000000000000000000n },
+      { name: '垓', val: 100000000000000000000n },
+      { name: '京', val: 10000000000000000n },
+      { name: '万亿', val: 1000000000000n },
+      { name: '亿', val: 100000000n },
+      { name: '万', val: 10000n }
+    ];
+
+    for (const unit of units) {
+      if (absN >= unit.val) {
+        const whole = absN / unit.val;
+        const frac = (absN / (unit.val / 10n)) % 10n;
+        return `${sign}$${whole}.${frac}${unit.name}`;
+      }
+    }
+    return `${sign}$${absN.toString()}`;
   }
 }

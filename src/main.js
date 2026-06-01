@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene.js';
 import MenuScene from './scenes/MenuScene.js';
+import ShopScene from './scenes/ShopScene.js';
 import GameScene from './scenes/GameScene.js';
 import ResultScene from './scenes/ResultScene.js';
 
@@ -17,7 +18,7 @@ const config = {
   input: {
     activePointers: 2,
   },
-  scene: [BootScene, MenuScene, GameScene, ResultScene],
+  scene: [BootScene, MenuScene, ShopScene, GameScene, ResultScene],
 };
 
 new Phaser.Game(config);

@@ -205,14 +205,116 @@ export default class MenuScene extends Phaser.Scene {
       });
     });
 
-    // ── 最高分 ──
-    const highScore = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
-    if (highScore > 0) {
-      this.add.text(cx, 640, `🏆 最高记录: ${this.formatMoney(highScore)}`, {
+    // ── 地下黑市商店按钮 ──
+    const shopBtnContainer = this.add.container(cx, 445).setDepth(10);
+    
+    const sBg = this.add.graphics();
+    sBg.fillStyle(0x0c1328, 0.85);
+    sBg.lineStyle(2, 0xff007f, 1); // 霓虹粉边框
+    sBg.fillRoundedRect(-110, -22, 220, 44, 12);
+    sBg.strokeRoundedRect(-110, -22, 220, 44, 12);
+    sBg.lineStyle(1, 0x00ffff, 0.4); // 青色内边框
+    sBg.strokeRoundedRect(-108, -20, 216, 40, 10);
+    
+    const shopText = this.add.text(0, 0, '🛒 地下黑市商店', {
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#ff007f',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+    
+    shopBtnContainer.add([sBg, shopText]);
+    
+    const shopHit = this.add.rectangle(0, 0, 220, 44, 0x000000, 0)
+      .setInteractive({ useHandCursor: true });
+    shopBtnContainer.add(shopHit);
+    
+    // 呼吸动画
+    this.tweens.add({
+      targets: shopBtnContainer,
+      scaleX: 1.05,
+      scaleY: 1.05,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    shopHit.on('pointerover', () => {
+      shopText.setColor('#00ffff');
+      sBg.clear();
+      sBg.fillStyle(0x16223f, 0.9);
+      sBg.lineStyle(2, 0x00ffff, 1); // 悬停变为青色霓虹
+      sBg.fillRoundedRect(-110, -22, 220, 44, 12);
+      sBg.strokeRoundedRect(-110, -22, 220, 44, 12);
+      
+      // 合成轻微的开锁嘟嘟声作为反馈
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 600;
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch (e) {}
+    });
+    
+    shopHit.on('pointerout', () => {
+      shopText.setColor('#ff007f');
+      sBg.clear();
+      sBg.fillStyle(0x0c1328, 0.85);
+      sBg.lineStyle(2, 0xff007f, 1);
+      sBg.fillRoundedRect(-110, -22, 220, 44, 12);
+      sBg.strokeRoundedRect(-110, -22, 220, 44, 12);
+      sBg.lineStyle(1, 0x00ffff, 0.4);
+      sBg.strokeRoundedRect(-108, -20, 216, 40, 10);
+    });
+    
+    shopHit.on('pointerdown', () => {
+      this.tweens.add({
+        targets: shopBtnContainer,
+        scale: 0.9,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          this.homeAudio.stop();
+          this.menuSiren.stop();
+          this.cameras.main.fadeOut(300, 0, 0, 0);
+          this.time.delayedCall(300, () => {
+            this.scene.start('ShopScene');
+          });
+        }
+      });
+    });
+
+    // ── 最高分 & 黑市资金 ──
+    let highScore = 0n;
+    try { highScore = BigInt(getStorage('heist_highscore') || '0'); } catch (e) {}
+    
+    let savings = 0n;
+    try { savings = BigInt(getStorage('heist_savings') || '0'); } catch (e) {}
+    
+    let infoText = '';
+    if (highScore > 0n) {
+      infoText += `🏆 最高记录: ${this.formatMoney(highScore)}`;
+    }
+    if (savings > 0n || highScore > 0n) {
+      if (infoText !== '') infoText += '  |  ';
+      infoText += `💰 黑市资金: ${this.formatMoney(savings)}`;
+    }
+    
+    if (infoText !== '') {
+      this.add.text(cx, 638, infoText, {
         fontFamily: '"Zpix", "Press Start 2P", monospace',
-        fontSize: '12px',
-        color: '#ffd700',
-        stroke: '#000',
+        fontSize: '11px',
+        color: '#00ffcc',
+        stroke: '#000000',
         strokeThickness: 3,
       }).setOrigin(0.5);
     }
@@ -252,18 +354,35 @@ export default class MenuScene extends Phaser.Scene {
     this.cameras.main.fadeIn(400);
   }
   formatMoney(n) {
-    if (n >= 1e48) return `$${(n / 1e48).toFixed(1)}极`;
-    if (n >= 1e44) return `$${(n / 1e44).toFixed(1)}载`;
-    if (n >= 1e40) return `$${(n / 1e40).toFixed(1)}正`;
-    if (n >= 1e36) return `$${(n / 1e36).toFixed(1)}涧`;
-    if (n >= 1e32) return `$${(n / 1e32).toFixed(1)}沟`;
-    if (n >= 1e28) return `$${(n / 1e28).toFixed(1)}穰`;
-    if (n >= 1e24) return `$${(n / 1e24).toFixed(1)}秭`;
-    if (n >= 1e20) return `$${(n / 1e20).toFixed(1)}垓`;
-    if (n >= 1e16) return `$${(n / 1e16).toFixed(1)}京`;
-    if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}万亿`;
-    if (n >= 1e8)  return `$${(n / 1e8).toFixed(1)}亿`;
-    if (n >= 1e4)  return `$${(n / 1e4).toFixed(1)}万`;
-    return `$${n.toLocaleString()}`;
+    if (typeof n !== 'bigint') {
+      try { n = BigInt(Math.floor(n)); } catch (e) { n = 0n; }
+    }
+    if (n === 0n) return '$0';
+    const sign = n < 0n ? '-' : '';
+    const absN = n < 0n ? -n : n;
+
+    const units = [
+      { name: '极', val: 1000000000000000000000000000000000000000000000000n },
+      { name: '载', val: 100000000000000000000000000000000000000000000n },
+      { name: '正', val: 10000000000000000000000000000000000000000n },
+      { name: '涧', val: 1000000000000000000000000000000000000n },
+      { name: '沟', val: 100000000000000000000000000000000n },
+      { name: '穰', val: 10000000000000000000000000000n },
+      { name: '秭', val: 1000000000000000000000000n },
+      { name: '垓', val: 100000000000000000000n },
+      { name: '京', val: 10000000000000000n },
+      { name: '万亿', val: 1000000000000n },
+      { name: '亿', val: 100000000n },
+      { name: '万', val: 10000n }
+    ];
+
+    for (const unit of units) {
+      if (absN >= unit.val) {
+        const whole = absN / unit.val;
+        const frac = (absN / (unit.val / 10n)) % 10n;
+        return `${sign}$${whole}.${frac}${unit.name}`;
+      }
+    }
+    return `${sign}$${absN.toString()}`;
   }
 }

@@ -159,6 +159,7 @@ export default class ResultScene extends Phaser.Scene {
           this.time.delayedCall(revealDelay + 1800, () => {
             this.showRetryAndShareButtons(cx, RETRY_BTN_Y, SHARE_BTN_Y);
             this.updateHighScore(data.money);
+            this.accumulateSavings(data.money);
             
             setTimeout(() => {
               // 排行榜已被移除
@@ -173,23 +174,41 @@ export default class ResultScene extends Phaser.Scene {
   }
 
   formatMoney(n) {
-    if (n >= 1e48) return `$${(n / 1e48).toFixed(1)}极`;
-    if (n >= 1e44) return `$${(n / 1e44).toFixed(1)}载`;
-    if (n >= 1e40) return `$${(n / 1e40).toFixed(1)}正`;
-    if (n >= 1e36) return `$${(n / 1e36).toFixed(1)}涧`;
-    if (n >= 1e32) return `$${(n / 1e32).toFixed(1)}沟`;
-    if (n >= 1e28) return `$${(n / 1e28).toFixed(1)}穰`;
-    if (n >= 1e24) return `$${(n / 1e24).toFixed(1)}秭`;
-    if (n >= 1e20) return `$${(n / 1e20).toFixed(1)}垓`;
-    if (n >= 1e16) return `$${(n / 1e16).toFixed(1)}京`;
-    if (n >= 1e12) return `$${(n / 1e12).toFixed(1)}万亿`;
-    if (n >= 1e8)  return `$${(n / 1e8).toFixed(1)}亿`;
-    if (n >= 1e4)  return `$${(n / 1e4).toFixed(1)}万`;
-    return `$${n.toLocaleString()}`;
+    if (typeof n !== 'bigint') {
+      try { n = BigInt(Math.floor(n)); } catch (e) { n = 0n; }
+    }
+    if (n === 0n) return '$0';
+    const sign = n < 0n ? '-' : '';
+    const absN = n < 0n ? -n : n;
+
+    const units = [
+      { name: '极', val: 1000000000000000000000000000000000000000000000000n },
+      { name: '载', val: 100000000000000000000000000000000000000000000n },
+      { name: '正', val: 10000000000000000000000000000000000000000n },
+      { name: '涧', val: 1000000000000000000000000000000000000n },
+      { name: '沟', val: 100000000000000000000000000000000n },
+      { name: '穰', val: 10000000000000000000000000000n },
+      { name: '秭', val: 1000000000000000000000000n },
+      { name: '垓', val: 100000000000000000000n },
+      { name: '京', val: 10000000000000000n },
+      { name: '万亿', val: 1000000000000n },
+      { name: '亿', val: 100000000n },
+      { name: '万', val: 10000n }
+    ];
+
+    for (const unit of units) {
+      if (absN >= unit.val) {
+        const whole = absN / unit.val;
+        const frac = (absN / (unit.val / 10n)) % 10n;
+        return `${sign}$${whole}.${frac}${unit.name}`;
+      }
+    }
+    return `${sign}$${absN.toString()}`;
   }
 
   checkIsHighScore(money) {
-    const prev = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
+    let prev = 0n;
+    try { prev = BigInt(getStorage('heist_highscore') || '0'); } catch(e) {}
     return money > prev;
   }
 
@@ -227,23 +246,22 @@ export default class ResultScene extends Phaser.Scene {
     subText.setAlpha(1);
 
     let dummy = { val: 0 };
-    const duration = data.money <= 200 ? 1000 : 2500;
+    const duration = data.money <= 200n ? 1000 : 2500;
     let lastPlayTime = 0;
 
     this.tweens.add({
       targets: dummy,
-      val: data.money,
+      val: 1, // 补间动画 0 到 1
       duration: duration,
       ease: 'Quad.easeIn',
       onUpdate: () => {
-        let displayVal = dummy.val;
+        let factor = Math.floor(dummy.val * 1000000);
+        let displayVal = (data.money * BigInt(factor)) / 1000000n;
         
         // 前200块按10块一档跳动，超过200后就平滑加速跳动
-        if (displayVal <= 200) {
-          displayVal = Math.floor(displayVal / 10) * 10;
-          if (displayVal === 0 && dummy.val > 0) displayVal = Math.floor(dummy.val);
-        } else {
-          displayVal = Math.floor(displayVal);
+        if (displayVal <= 200n) {
+          displayVal = (displayVal / 10n) * 10n;
+          if (displayVal === 0n && data.money > 0n && dummy.val > 0) displayVal = data.money < 10n ? data.money : 10n;
         }
 
         moneyText.setText(this.formatMoney(displayVal));
@@ -427,14 +445,15 @@ export default class ResultScene extends Phaser.Scene {
   //  Retry Button
   // ==================================================================
   showRetryAndShareButtons(cx, rY, sY) {
-    // 分享按钮暂时隐藏，直接调用单按钮方法居中显示
-    this.showRetryButton(cx, rY);
+    // 显示两个按钮：再来一次 和 返回主菜单
+    this.showRetryButton(cx - 70, rY);
+    this.showReturnButton(cx + 70, rY);
   }
 
-  showRetryButton(cx, ypos) {
-    const retryScale = (200 / 300) * 0.7;
+  showRetryButton(x, ypos) {
+    const retryScale = (200 / 300) * 0.6; // slightly smaller to fit two buttons
 
-    const retryBtn = this.add.image(cx, ypos, 'btnRetry')
+    const retryBtn = this.add.image(x, ypos, 'btnRetry')
       .setScale(retryScale)
       .setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(15).setAlpha(0);
     
@@ -468,10 +487,56 @@ export default class ResultScene extends Phaser.Scene {
     });
   }
 
+  showReturnButton(x, ypos) {
+    const returnBtn = this.add.container(x, ypos).setDepth(15).setAlpha(0);
+
+    const rG = this.add.graphics();
+    rG.fillStyle(0x3366aa, 0.9); // 蓝色
+    rG.lineStyle(2, 0xffffff, 0.6);
+    rG.fillRoundedRect(-55, -20, 110, 40, 12);
+    rG.strokeRoundedRect(-55, -20, 110, 40, 12);
+
+    const rText = this.add.text(0, 0, '返回主页', {
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
+      fontSize: '14px',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+
+    returnBtn.add([rG, rText]);
+
+    const hitArea = this.add.rectangle(0, 0, 110, 40, 0x000000, 0)
+      .setInteractive({ useHandCursor: true });
+    returnBtn.add(hitArea);
+
+    this.tweens.add({
+      targets: returnBtn,
+      alpha: 1,
+      duration: 400,
+    });
+
+    hitArea.on('pointerdown', () => {
+      this.tweens.add({
+        targets: returnBtn,
+        scale: 0.9,
+        duration: 80,
+        yoyo: true,
+        onComplete: () => {
+          this.cameras.main.fadeOut(300, 0, 0, 0);
+          this.time.delayedCall(350, () => {
+            this.scene.start('MenuScene');
+          });
+        }
+      });
+    });
+  }
+
   updateHighScore(money) {
-    const prev = parseInt(localStorage.getItem('heist_highscore') || '0', 10);
+    let prev = 0n;
+    try { prev = BigInt(getStorage('heist_highscore') || '0'); } catch(e) {}
     if (money > prev) {
-      localStorage.setItem('heist_highscore', money.toString());
+      setStorage('heist_highscore', money.toString());
 
       const cx = GAME.WIDTH / 2;
       const hs = this.add.text(cx, 260, '🏆 NEW HIGH SCORE!', {
@@ -500,6 +565,29 @@ export default class ResultScene extends Phaser.Scene {
         delay: 1000,
       });
     }
+  }
+
+  accumulateSavings(money) {
+    let currentSavings = 0n;
+    try { currentSavings = BigInt(getStorage('heist_savings') || '0'); } catch(e) {}
+
+    const cx = GAME.WIDTH / 2;
+    const savingsText = this.add.text(cx, 386, `💰 汇入黑市金库: +${this.formatMoney(money)} (总计: ${this.formatMoney(currentSavings)})`, {
+      fontFamily: '"Zpix", "Press Start 2P", monospace',
+      fontSize: '11px',
+      color: '#00ffcc',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(20).setAlpha(0);
+
+    this.tweens.add({
+      targets: savingsText,
+      alpha: { from: 0, to: 1 },
+      y: { from: 396, to: 386 },
+      duration: 600,
+      ease: 'Back.easeOut',
+      delay: 500
+    });
   }
 
   // ==================================================================
@@ -641,7 +729,7 @@ export default class ResultScene extends Phaser.Scene {
 
     // 4. Summary row
     const totalBeforeCaught = data.totalMoneyBeforeCaught || 0;
-    const summaryStr = `💰 抢了 ${data.bags} 袋 · 罚没 ${this.formatMoney(totalBeforeCaught)}`;
+    const summaryStr = `💰 抢了 ${data.bags} 袋 · 保留 ${this.formatMoney(totalBeforeCaught)}`;
     const summaryText = this.add.text(cx, summaryY, summaryStr, {
       fontFamily: '"Zpix", "Press Start 2P", monospace',
       fontSize: '12px',
